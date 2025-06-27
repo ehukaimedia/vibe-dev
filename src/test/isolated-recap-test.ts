@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import { executeTerminalCommand } from '../vibe-terminal.js';
 import { generateRecap } from '../vibe-recap.js';
+import { cleanupAfterTest } from './test-helper.js';
 
 test('Summary recap analyzes patterns correctly', async () => {
   // Execute commands in sequence
@@ -25,4 +26,7 @@ test('Summary recap analyzes patterns correctly', async () => {
     'Should detect git activity or fallback');
   
   console.log('✅ Summary recap analyzes patterns correctly');
+  
+  // Cleanup
+  cleanupAfterTest();
 });

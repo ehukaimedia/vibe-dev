@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { executeTerminalCommand } from '../vibe-terminal.js';
+import { executeTerminalCommand, getTerminal } from '../vibe-terminal.js';
 
 console.log('Testing Vibe Terminal Edge Cases...\n');
 
@@ -143,6 +143,9 @@ async function runEdgeCaseTests() {
   console.log(`Passed: ${passCount}`);
   console.log(`Failed: ${failCount}`);
   console.log(`Success rate: ${((passCount / (passCount + failCount)) * 100).toFixed(1)}%`);
+  
+  // Cleanup terminal session
+  getTerminal().kill();
   
   process.exit(failCount > 0 ? 1 : 0);
 }

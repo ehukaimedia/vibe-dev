@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { executeTerminalCommand } from '../vibe-terminal.js';
+import { executeTerminalCommand, getTerminal } from '../vibe-terminal.js';
 
 async function testForLoop() {
   console.log('Testing for loop output...\n');
@@ -35,9 +35,11 @@ async function testForLoop() {
     
   } catch (error) {
     console.error('Test failed with error:', error);
+    getTerminal().kill();
     process.exit(1);
   }
   
+  getTerminal().kill();
   process.exit(0);
 }
 
