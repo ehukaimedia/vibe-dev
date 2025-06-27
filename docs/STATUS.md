@@ -1,9 +1,9 @@
 # Vibe Dev Status
 
-**Last Updated**: 2025-06-27 15:50:00  
+**Last Updated**: 2025-06-27 17:40:00  
 **Updated By**: Claude Desktop (Opus 4)
 
-## 🎯 Current Phase: Architecture Complete, Ready for MVP Implementation
+## 🎯 Current Phase: MVP Testing - Tool Access Issue
 
 ### ✅ Completed Today
 
@@ -18,65 +18,44 @@
    - Created comprehensive MVP_PLAN.md
    - Established handoff system between Claude Desktop and Claude Code
    - Created vibe-intelligence.ts stub with interfaces
+   - Added LOCAL_FILES_REFERENCE.md with patterns to study
+   - Created MCP_SERVER_GUIDE.md with implementation templates
 
-3. **Key Decisions**
-   - Use node-pty for terminal emulation
-   - Two tools only: vibe_terminal and vibe_recap
-   - Focus on prompt detection as critical feature
-   - Maintain one persistent PTY session
+3. **MVP Implementation** (by Claude Code)
+   - Basic MCP server structure created
+   - Tools appear in Claude Desktop menu
+   - **Issue**: Tools not accessible ("Tool not found" error)
 
-### 🚧 Ready for Implementation
+### 🚧 Current Issue: Tool Execution
 
-1. **Core Terminal (Priority 1)**
-   - [ ] Install node-pty
-   - [ ] Create VibeTerminal class
-   - [ ] Implement prompt detection
-   - [ ] Test session persistence
-   - [ ] Verify cd/pwd persistence works
+**Problem**: vibe_terminal and vibe_recap appear in Claude Desktop but return "Tool not found"
+**Diagnosis**: MCP server partially working - tools register but handler fails
+**Next Step**: Claude Code to diagnose and fix (handoff created)
 
-2. **MCP Integration (Priority 2)**
-   - [ ] Create index.ts server
-   - [ ] Implement vibe_terminal tool
-   - [ ] Basic vibe_recap tool
-   - [ ] Test with Claude Desktop
+### 📊 Testing Status
 
-3. **Intelligence Features (Priority 3)**
-   - [ ] Exit code tracking
-   - [ ] Command timing
-   - [ ] Error detection
-   - [ ] Recovery features
+1. **MCP Integration**
+   - [x] Tools appear in menu
+   - [ ] vibe_terminal executes
+   - [ ] vibe_recap executes
+   - [ ] Proper error handling
 
-### 📊 Technical Insights
+2. **Core Functionality** (Pending tool fix)
+   - [ ] Session persistence verified
+   - [ ] Directory changes persist
+   - [ ] Environment variables persist
+   - [ ] Virtual environments work
 
-**From DesktopCommanderMCP Analysis:**
-- They use `spawn()` with `shell: true` - no persistence
-- Every command runs in isolation
-- Complex parsing still breaks on edge cases
-- Confirms our PTY approach is superior
+### 🎯 Immediate Priority
 
-**Key Innovation:**
-- Traditional: `spawn('cd /project')` - dies immediately
-- Vibe Dev: `terminal.write('cd /project\n')` - persists!
-
-### 🎯 Next Actions
-
-**For Claude Code:**
-1. Read `/docs/production/MVP_PLAN.md` first
-2. Start with basic PTY implementation
-3. Focus on prompt detection
-4. Get session persistence working
-5. Build up from simple to complex
+**Fix tool execution issue** - Without this, we can't test the core PTY functionality
 
 ### 📝 Session Notes
 
-- Extensive discussion on terminal emulation vs command spawning
-- Analyzed "Terminal Emulator Mode" document showing code reduction
-- Created comprehensive handoff documentation
-- Set up communication system between Claude instances
-
-### 🚀 Project Health: Ready for Development
-
-All architecture decisions made. Documentation complete. Ready for Claude Code to implement MVP.
+- MVP built by Claude Code
+- Tools visible but not functional
+- Handoff created with diagnostic steps
+- Likely simple name mismatch or handler issue
 
 ---
 
