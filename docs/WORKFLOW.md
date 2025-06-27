@@ -8,8 +8,8 @@ Every development session follows this exact pattern:
 
 ### 1. Understand Reality (5 minutes)
 ```bash
-cd /Users/ehukaimedia/Desktop/AI-Applications/Node/vibe-dev-mvp
-git pull
+cd /Users/ehukaimedia/Desktop/AI-Applications/Node/vibe-dev
+git status
 npm test
 cat docs/STATUS.md | grep -A 10 "Active Issues"
 ```
