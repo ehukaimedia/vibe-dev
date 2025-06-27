@@ -12,6 +12,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [18.x, 20.x, 22.x]
+        exclude:
+          # node-pty has compilation issues with Node.js 22 on Windows
+          - os: windows-latest
+            node-version: 22.x
     
     runs-on: ${{ matrix.os }}
     
@@ -34,7 +38,7 @@ jobs:
       
     - name: Test vibe_terminal directly
       run: |
-        node dist/src/test/test-timeout-fix.js
+        node dist/src/test/timeout-fix-test.js
         node dist/src/test/session-persistence-test.js
         
     - name: Upload test results
