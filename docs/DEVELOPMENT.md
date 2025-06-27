@@ -5,17 +5,31 @@
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20+
 - TypeScript 5+
 - Git
+- Claude Desktop (for testing)
 
 ### Setup
 ```bash
-git clone https://github.com/ehukaimedia/vibe-dev-mvp.git
-cd vibe-dev-mvp
+git clone https://github.com/ehukaimedia/vibe-dev.git
+cd vibe-dev
 npm install
 npm run build
 npm test
+```
+
+### Configure Claude Desktop
+Add to `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "vibe-dev": {
+      "command": "node",
+      "args": ["/path/to/vibe-dev/dist/index.js"]
+    }
+  }
+}
 ```
 
 ## Development Principles
@@ -37,43 +51,55 @@ No third tool. Ever.
 - Understand workflows, not syntax
 - Suggest actions, not rules
 
+### 4. Simplicity Wins
+- Less code is better code
+- Clear over clever
+- Maintain over create
+
 ## Project Structure
 
 ```
-vibe-dev-mvp/
+vibe-dev/
 ├── src/
-│   ├── index.ts          # Exports both tools
-│   ├── vibe-terminal.ts  # Terminal execution
-│   └── vibe-recap.ts     # Intelligence engine
+│   ├── index.ts             # MCP server entry
+│   ├── vibe-terminal.ts     # Terminal tool
+│   ├── vibe-recap.ts        # Recap tool
+│   ├── session-manager.ts   # Session handling
+│   ├── intelligence.ts      # Pattern analysis
+│   └── types.ts            # TypeScript types
 ├── test/
-│   └── index.test.ts     # Test suite
-├── docs/                 # Eight Sacred Documents
-└── dist/                 # Compiled output
+│   ├── unit/               # Unit tests
+│   ├── integration/        # Integration tests
+│   └── performance/        # Performance tests
+├── docs/                   # Eight Sacred Documents
+│   └── claude-handoffs/    # Handoff documents
+├── test-env/              # Test file system
+├── test-venv/             # Python test env
+└── dist/                  # Compiled output
 ```
 
-## Building Features
+## Development Workflow
 
-### Step 1: Define Success
-What makes this better for developers?
-- Faster? By how much?
-- Smarter? What patterns?
-- More reliable? Which edge cases?
+### For Claude Desktop (Testing)
 
-### Step 2: Write Tests First
-See [TDD-WORKFLOW.md](TDD-WORKFLOW.md)
+1. **Never edit source directly**
+2. **Test thoroughly with vibe tools**
+3. **Create detailed handoffs**
+4. **Update STATUS.md**
 
-### Step 3: Implement Minimally
-Simplest code that passes tests.
+### For Claude Code (Implementation)
 
-### Step 4: Optimize Performance
-Make it fast. Then make it faster.
-
-### Step 5: Measure Impact
-Document the improvement in STATUS.md
+1. **Read handoffs carefully**
+2. **Write tests first (TDD)**
+3. **Implement minimally**
+4. **Optimize for performance**
+5. **Create response handoff**
+6. **NEVER git push/pull without explicit authorization**
 
 ## Code Standards
 
-### TypeScript
+### TypeScript Guidelines
+
 ```typescript
 // Always explicit return types
 export async function vibe_terminal(
@@ -83,103 +109,216 @@ export async function vibe_terminal(
   // Implementation
 }
 
+// Use interfaces for contracts
+interface TerminalResult {
+  output: string;
+  exitCode: number;
+  duration?: number;
+  error?: string;
+}
+
 // No any without comment
-const data: any; // TODO: Type after parsing
+let data: any; // TODO: Type after parsing JSON
+
+// Prefer const
+const SESSION_TIMEOUT = 30000;
+
+// Use early returns
+if (!command) {
+  return { output: '', exitCode: 1, error: 'No command provided' };
+}
 ```
 
-### Performance
+### Performance Standards
+
 ```typescript
-// Always measure
+// Always measure critical paths
 const start = performance.now();
-// ... operation ...
+const result = await executeCommand(cmd);
 const duration = performance.now() - start;
-if (duration > 100) {
-  console.warn(`Slow operation: ${duration}ms`);
+
+if (duration > 1000) {
+  console.warn(`Slow execution: ${duration}ms for ${cmd}`);
 }
+
+// Include duration in results
+return { ...result, duration };
 ```
 
 ### Error Handling
+
 ```typescript
-// Graceful failures
+// Graceful failures with useful info
 try {
-  return await executeCommand(cmd);
+  return await executePTY(command);
 } catch (error) {
+  // Don't throw - return error result
   return {
-    stdout: '',
-    stderr: error.message,
+    output: '',
     exitCode: 1,
+    error: error.message,
     duration: 0
   };
 }
+
+// Always provide recovery path
+if (!session.isAlive()) {
+  session = await createNewSession();
+}
 ```
+
+## Building Features
+
+### Step 1: Define Success
+What makes this better for developers?
+- **Faster?** Measure current vs target time
+- **Smarter?** Define patterns to recognize
+- **More reliable?** Identify edge cases to handle
+- **Simpler?** Count lines to remove
+
+### Step 2: Write Tests First
+See [TDD-WORKFLOW.md](TDD-WORKFLOW.md) for details
+
+### Step 3: Implement Minimally
+```typescript
+// Start with the simplest thing that could work
+export async function newFeature(input: string): Promise<string> {
+  return `TODO: Process ${input}`;
+}
+```
+
+### Step 4: Make It Real
+```typescript
+// Now implement properly
+export async function newFeature(input: string): Promise<string> {
+  const processed = await processInput(input);
+  return formatOutput(processed);
+}
+```
+
+### Step 5: Optimize Performance
+```typescript
+// Measure and improve
+const cached = cache.get(input);
+if (cached) return cached;
+
+const result = await processInput(input);
+cache.set(input, result);
+return result;
+```
+
+### Step 6: Document Impact
+Update STATUS.md with measurable improvement
 
 ## Common Tasks
 
-### Add a Feature
-1. Update STATUS.md with the plan
-2. Write failing tests
-3. Implement minimally
-4. Optimize for <1s
-5. Update docs if needed
-6. Commit with metrics
+### Fix Output Isolation Bug
+```bash
+# 1. Write failing test
+echo "test('output isolation', async () => {
+  const r1 = await vibe_terminal('echo first');
+  const r2 = await vibe_terminal('echo second');
+  expect(r2.output).toBe('second\n');
+});" >> test/unit/vibe-terminal.test.ts
 
-### Fix a Bug
-1. Write test that reproduces it
-2. Fix the bug
-3. Ensure all tests pass
-4. Add edge case tests
-5. Update STATUS.md
+# 2. Run test (should fail)
+npm test -- test/unit/vibe-terminal.test.ts
+
+# 3. Fix the code
+# Edit src/vibe-terminal.ts to return only current output
+
+# 4. Run test (should pass)
+npm test -- test/unit/vibe-terminal.test.ts
+
+# 5. Run all tests
+npm test
+
+# 6. Update STATUS.md
+```
+
+### Add Intelligence Pattern
+```typescript
+// 1. Define the pattern in src/intelligence.ts
+const PATTERNS = {
+  nodejs: {
+    indicators: ['package.json', 'npm install', 'node_modules'],
+    confidence: (matches: number) => matches / 3,
+    insights: ['Node.js project detected']
+  }
+};
+
+// 2. Test pattern recognition
+test('recognizes Node.js workflow', async () => {
+  await vibe_terminal('npm init -y');
+  const recap = await vibe_recap();
+  expect(recap.insights).toContain('Node.js project detected');
+});
+```
 
 ### Improve Performance
-1. Benchmark current state
-2. Identify bottleneck
-3. Optimize
-4. Benchmark again
-5. Document improvement
+```typescript
+// 1. Benchmark current state
+const baseline = await benchmark('vibe_terminal', 100);
+console.log(`Baseline: ${baseline}ms average`);
+
+// 2. Profile to find bottleneck
+console.profile('vibe_terminal');
+await vibe_terminal('echo test');
+console.profileEnd();
+
+// 3. Optimize hotspot
+// Example: Replace sync with async
+// Before: fs.readFileSync()
+// After: await fs.promises.readFile()
+
+// 4. Benchmark again
+const improved = await benchmark('vibe_terminal', 100);
+console.log(`Improved: ${improved}ms average`);
+console.log(`Speedup: ${((baseline - improved) / baseline * 100).toFixed(1)}%`);
+```
 
 ## Debugging
 
-### Terminal Issues
+### Enable Debug Logging
 ```bash
-# Enable debug logging
+# Set debug environment variable
 DEBUG=vibe:* npm test
 
-# Test specific command
-node -e "import('./dist/index.js').then(m => m.vibe_terminal('ls').then(console.log))"
+# Or in code
+if (process.env.DEBUG?.includes('vibe')) {
+  console.log('[vibe:terminal]', command, result);
+}
 ```
 
-### Performance Issues
+### Test Specific Commands
+```javascript
+// Quick test without full build
+node -e "
+  import('./dist/index.js').then(m => 
+    m.vibe_terminal('ls -la').then(console.log)
+  )
+"
+```
+
+### Profile Performance
 ```typescript
-// Add timing logs
-console.time('operation');
-// ... code ...
-console.timeEnd('operation');
+// Add profiling to slow operations
+console.time('pty-creation');
+const pty = await createPTY();
+console.timeEnd('pty-creation');
 ```
-
-## Testing
-
-### Run Tests
-```bash
-npm test              # All tests
-npm run test:watch    # Watch mode
-npm run test:perf     # Performance only
-```
-
-### Write Tests
-- Every feature needs tests
-- Every test needs performance assertions
-- Test real workflows, not units
 
 ## Commit Guidelines
 
 ### Format
 ```
-[type]: [description]
+[type]: [specific, measurable improvement]
 
-[Detailed explanation]
-[Performance metrics]
+[What changed]
+[Why it matters]
+[Performance impact]
 
-HANDOFF: [What's next]
+HANDOFF: [Next action for next developer]
 ```
 
 ### Types
@@ -187,27 +326,66 @@ HANDOFF: [What's next]
 - `feat`: New capability
 - `fix`: Bug fix
 - `docs`: Documentation only
-- `test`: Test addition/improvement
+- `test`: Test improvements
+- `refactor`: Code improvement (no behavior change)
 
-### Example
+### Examples
 ```
 perf: reduce vibe_terminal response by 60%
 
-Changed sync parsing to streaming
-Before: 2.5s average
-After: 1.0s average
-Tested on: Mac M1, Windows 11
+- Changed sync file reads to async
+- Removed unnecessary buffer copies
+- Before: 2.5s average
+- After: 1.0s average
+- Tested on: Mac M1, Windows 11
 
-HANDOFF: Optimize vibe_recap next
+HANDOFF: vibe_recap still slow, needs similar optimization
 ```
+
+```
+fix: isolate command output properly
+
+- Fixed accumulation bug in command history
+- Each command now returns only its output
+- Added regression test
+- Closes #issue-from-handoff
+
+HANDOFF: Exit codes still bleeding between commands
+```
+
+## Quality Checklist
+
+Before committing:
+- [ ] Tests pass (`npm test`)
+- [ ] Performance maintained (`npm run test:performance`)
+- [ ] Types check (`npm run type-check`)
+- [ ] Linting clean (`npm run lint`)
+- [ ] STATUS.md updated
+- [ ] Measurable improvement documented
 
 ## Resources
 
+### Internal Docs
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System design
+- [WORKFLOW.md](WORKFLOW.md) - Development flow
+- [TDD-WORKFLOW.md](TDD-WORKFLOW.md) - Test approach
 - [API.md](API.md) - Tool specifications
-- [WORKFLOW.md](WORKFLOW.md) - Session workflow
-- [STATUS.md](STATUS.md) - Current progress
+
+### External References
+- [MCP Protocol](https://github.com/anthropics/mcp) - Tool protocol
+- [node-pty](https://github.com/microsoft/node-pty) - PTY library
+- Study patterns in reference projects (don't copy)
+
+## The Developer Experience
+
+Remember: We're building for developers who:
+- Value speed over features
+- Need reliability over promises
+- Want simplicity over complexity
+- Prefer intelligence over configuration
+
+Every line of code should make their life better.
 
 ---
 
-*Build fast. Build smart. Build simple.*
+*Build fast. Build smart. Build simple. Ship excellence.*

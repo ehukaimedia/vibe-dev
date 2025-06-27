@@ -1,17 +1,17 @@
 {
   "name": "vibe-dev-mvp",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Vibe Dev MVP - Two tools, infinite capability. Clean slate implementation.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "vibe-dev-mvp": "dist/index.js"
+    "vibe-dev": "./dist/src/index.js"
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "npm run build && node --test dist/test/**/*.test.js",
-    "test:watch": "npm run build && node --test --watch dist/test/**/*.test.js",
+    "test": "npm run build && node --test dist/src/test/*-test.js",
+    "test:watch": "npm run build && node --test --watch dist/src/test/*-test.js",
     "clean": "rm -rf dist",
     "start": "node dist/src/index.js"
   },
@@ -33,8 +33,18 @@
   },
   "homepage": "https://github.com/ehukaimedia/vibe-dev-mvp#readme",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.13.2",
     "@types/node": "^24.0.4",
-    "typescript": "^5.8.3"
+    "node-pty": "^1.0.0",
+    "typescript": "^5.8.3",
+    "zod": "^3.25.67",
+    "zod-to-json-schema": "^3.24.6"
   },
-  "devDependencies": {}
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.3"
+  }
 }

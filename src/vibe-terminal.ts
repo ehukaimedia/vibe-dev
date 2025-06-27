@@ -1,5 +1,417 @@
-// vibe_terminal - Execute ANY command with persistent session state
+import * as pty from 'node-pty';
+import * as os from 'os';
+import { randomUUID } from 'crypto';
+import { 
+  TerminalResult, 
+  CommandRecord, 
+  SessionState, 
+  TerminalConfig 
+} from './types.js';
 
-export async function vibe_terminal(command: string): Promise<any> {
-  throw new Error('vibe_terminal not implemented - MVP stub');
+export class VibeTerminal {
+  private pty: pty.IPty;
+  private sessionId: string;
+  private output: string = '';
+  private commandHistory: CommandRecord[] = [];
+  private currentWorkingDirectory: string;
+  private startTime: Date;
+  private shellType: SessionState['shellType'];
+  private promptTimeout: number;
+  private isExecuting: boolean = false;
+  
+  constructor(config: TerminalConfig = {}) {
+    this.sessionId = randomUUID();
+    this.startTime = new Date();
+    this.currentWorkingDirectory = config.cwd || process.cwd();
+    this.promptTimeout = config.promptTimeout || 3000; // Default 3 second timeout
+    
+    // Determine shell
+    const defaultShell = config.shell || this.getDefaultShell();
+    this.shellType = this.detectShellType(defaultShell);
+    
+    // Create PTY instance
+    this.pty = pty.spawn(defaultShell, [], {
+      name: 'xterm-256color',
+      cols: config.cols || 80,
+      rows: config.rows || 24,
+      cwd: this.currentWorkingDirectory,
+      env: { ...process.env, ...config.env }
+    });
+    
+    console.error(`Vibe Terminal: Created session ${this.sessionId} with ${this.shellType} shell (PID: ${this.pty.pid})`);
+    
+    // Initial working directory is set from config or process.cwd()
+  }
+  
+  private getDefaultShell(): string {
+    if (os.platform() === 'win32') {
+      return 'powershell.exe';
+    }
+    // Use bash by default on macOS for better compatibility
+    return '/bin/bash';
+  }
+  
+  private detectShellType(shellPath: string): SessionState['shellType'] {
+    if (shellPath.includes('bash')) return 'bash';
+    if (shellPath.includes('zsh')) return 'zsh';
+    if (shellPath.includes('fish')) return 'fish';
+    if (shellPath.includes('sh')) return 'sh';
+    return 'unknown';
+  }
+  
+  async execute(command: string): Promise<TerminalResult> {
+    if (this.isExecuting) {
+      throw new Error('Another command is currently executing');
+    }
+    
+    this.isExecuting = true;
+    const startTime = Date.now();
+    
+    const resultPromise = new Promise<TerminalResult>((resolve, reject) => {
+      let commandOutput = '';
+      let promptDetected = false;
+      let timeoutHandle: NodeJS.Timeout;
+      let dataListener: any; // Store the disposable
+      
+      const cleanup = () => {
+        this.isExecuting = false;
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+        if (dataListener) dataListener.dispose(); // Properly remove the listener
+      };
+      
+      const onData = (data: string) => {
+        commandOutput += data;
+        this.output += data; // Keep full session history
+        
+        // Check for prompt
+        if (this.isAtPrompt(commandOutput)) {
+          promptDetected = true;
+          cleanup();
+          
+          // Extract working directory from output if it's a cd or pwd command
+          if (command.trim() === 'pwd') {
+            // pwd command - output is the directory
+            const pwdOutput = this.cleanOutput(commandOutput, command).trim();
+            if (pwdOutput && pwdOutput.startsWith('/')) {
+              this.currentWorkingDirectory = pwdOutput;
+            }
+          } else {
+            // Try to extract from prompt
+            const newCwd = this.extractWorkingDirectory(commandOutput);
+            if (newCwd) {
+              this.currentWorkingDirectory = newCwd;
+            }
+          }
+          
+          const duration = Date.now() - startTime;
+          const result: TerminalResult = {
+            output: this.cleanOutput(commandOutput, command),
+            exitCode: this.extractExitCode(commandOutput),
+            duration,
+            sessionId: this.sessionId,
+            timestamp: new Date(),
+            command,
+            workingDirectory: this.currentWorkingDirectory
+          };
+          
+          // Store in history
+          this.commandHistory.push({
+            timestamp: result.timestamp,
+            command,
+            output: result.output,
+            exitCode: result.exitCode,
+            duration,
+            workingDirectory: this.currentWorkingDirectory
+          });
+          
+          resolve(result);
+        }
+      };
+      
+      // Set timeout for prompt detection
+      timeoutHandle = setTimeout(() => {
+        if (!promptDetected) {
+          cleanup();
+          
+          // Still return what we have
+          const duration = Date.now() - startTime;
+          const result: TerminalResult = {
+            output: this.cleanOutput(commandOutput, command),
+            exitCode: -1, // Unknown
+            duration,
+            sessionId: this.sessionId,
+            timestamp: new Date(),
+            command,
+            workingDirectory: this.currentWorkingDirectory
+          };
+          
+          this.commandHistory.push({
+            timestamp: result.timestamp,
+            command,
+            output: result.output,
+            exitCode: result.exitCode,
+            duration,
+            workingDirectory: this.currentWorkingDirectory
+          });
+          
+          resolve(result);
+        }
+      }, this.promptTimeout);
+      
+      // Listen for data - node-pty uses onData method
+      dataListener = this.pty.onData(onData);
+      
+      // Write command
+      this.pty.write(command + '\r');
+    });
+    
+    // Wait for the command to complete
+    const result = await resultPromise;
+    
+    // After a cd command completes, update the working directory
+    if (command.trim().startsWith('cd ') || command.trim() === 'cd') {
+      await this.updateWorkingDirectoryAfterCd();
+      
+      // Update the last command in history with the new working directory
+      if (this.commandHistory.length > 0) {
+        const lastCommand = this.commandHistory[this.commandHistory.length - 1];
+        lastCommand.workingDirectory = this.currentWorkingDirectory;
+      }
+    }
+    
+    return result;
+  }
+  
+  private isAtPrompt(output: string): boolean {
+    const lines = output.split('\n');
+    const lastLine = lines[lines.length - 1];
+    
+    // Shell-specific prompt detection
+    switch (this.shellType) {
+      case 'bash':
+        return /\$\s*$/.test(lastLine) || /#\s*$/.test(lastLine);
+      
+      case 'zsh':
+        // ZSH with its fancy prompts
+        return /\$\s*$/.test(lastLine) || 
+               /#\s*$/.test(lastLine) ||
+               /%\s*$/.test(lastLine) ||
+               />\s*$/.test(lastLine) ||
+               // Handle the specific prompt we saw in testing
+               /\[K\[\?2004h/.test(lastLine);
+      
+      case 'fish':
+        return />\s*$/.test(lastLine) || /»\s*$/.test(lastLine);
+      
+      default:
+        // Generic prompt detection
+        return /\$\s*$/.test(lastLine) || 
+               /#\s*$/.test(lastLine) ||
+               />\s*$/.test(lastLine) ||
+               /%\s*$/.test(lastLine);
+    }
+  }
+  
+  private cleanOutput(rawOutput: string, command: string): string {
+    // Split by lines
+    let lines = rawOutput.split('\n');
+    
+    // Remove known shell startup messages
+    const shellMessages = [
+      'The default interactive shell is now zsh.',
+      'To update your account to use zsh',
+      'For more details, please visit'
+    ];
+    
+    lines = lines.filter(line => !shellMessages.some(msg => line.includes(msg)));
+    
+    // Find where actual command output starts (after command echo)
+    let outputStartIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes(command)) {
+        outputStartIndex = i + 1;
+        break;
+      }
+    }
+    
+    if (outputStartIndex > 0) {
+      lines = lines.slice(outputStartIndex);
+    }
+    
+    // Find where output ends (before next prompt)
+    let outputEndIndex = lines.length;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (this.looksLikePrompt(lines[i])) {
+        outputEndIndex = i;
+        break;
+      }
+    }
+    
+    lines = lines.slice(0, outputEndIndex);
+    
+    // Clean ANSI escape sequences
+    const cleaned = lines.join('\n')
+      .replace(/\x1b\[[0-9;]*m/g, '') // Color codes
+      .replace(/\x1b\[[0-9]*[GKJH]/g, '') // Cursor movement
+      .replace(/\x1b\[\?[0-9]+[hl]/g, '') // Mode changes
+      .replace(/\r/g, '') // Carriage returns
+      .replace(/\[K/g, '') // Clear line
+      .replace(/\[\?2004[lh]/g, '') // Bracketed paste mode
+      .replace(/\[1m\[7m/g, '') // Bold/reverse video
+      .replace(/\[27m\[1m\[0m/g, '') // Reset
+      .replace(/\[0m/g, '') // Reset
+      .replace(/\[24m/g, '') // Not underlined
+      .replace(/\[J/g, '') // Clear screen
+      .replace(/dquote>/g, '') // ZSH quote prompts
+      .trim();
+    
+    return cleaned;
+  }
+  
+  private looksLikePrompt(line: string): boolean {
+    // Common prompt patterns
+    return /[$#%>]\s*$/.test(line) || 
+           /\]\s*[$#%>]\s*$/.test(line) ||
+           line.includes('[K[?2004h') ||
+           line.includes('ehukaimedia@') ||
+           line.trim() === '%';
+  }
+  
+  private extractExitCode(output: string): number {
+    // This is tricky - we might need to inject a command to get exit code
+    // For now, return 0 if no obvious error, -1 if unknown
+    if (output.includes('command not found') || 
+        output.includes('No such file or directory') ||
+        output.includes('Permission denied') ||
+        output.includes('error:') ||
+        output.includes('Error:')) {
+      return 1;
+    }
+    return 0; // Assume success if no obvious error
+  }
+  
+  private async updateWorkingDirectoryAfterCd(): Promise<void> {
+    // Run pwd asynchronously to update working directory after cd
+    try {
+      const pwdResult = await this.executeInternalCommand('pwd');
+      if (pwdResult && pwdResult.startsWith('/')) {
+        this.currentWorkingDirectory = pwdResult;
+      }
+    } catch (error) {
+      console.error('Vibe Terminal: Failed to update working directory after cd:', error);
+    }
+  }
+  
+  private async executeInternalCommand(command: string): Promise<string> {
+    // Execute a command internally without adding to history
+    return new Promise((resolve) => {
+      let output = '';
+      let dataListener: any;
+      let timeoutHandle: NodeJS.Timeout;
+      let promptDetected = false;
+      
+      const cleanup = () => {
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+        if (dataListener) dataListener.dispose();
+      };
+      
+      const onData = (data: string) => {
+        output += data;
+        if (this.isAtPrompt(output)) {
+          promptDetected = true;
+          cleanup();
+          const cleaned = this.cleanOutput(output, command).trim();
+          resolve(cleaned);
+        }
+      };
+      
+      timeoutHandle = setTimeout(() => {
+        if (!promptDetected) {
+          cleanup();
+          const cleaned = this.cleanOutput(output, command).trim();
+          resolve(cleaned);
+        }
+      }, 500); // Short timeout for internal commands
+      
+      dataListener = this.pty.onData(onData);
+      this.pty.write(command + '\r');
+    });
+  }
+  
+  private extractWorkingDirectory(output: string): string | null {
+    // Try to extract cwd from prompt
+    const lines = output.split('\n');
+    
+    // Look for prompt patterns in the last few lines
+    for (let i = lines.length - 1; i >= Math.max(0, lines.length - 3); i--) {
+      const line = lines[i];
+      
+      // Common patterns in prompts that show directory
+      // user@host:~/path$ or user@host:/full/path$
+      const patterns = [
+        /:\s*([~\/][^\s$#%>]*)\s*[$#%>]/, // user@host:/path$
+        /\[([~\/][^\]]+)\]/, // [/path]
+        /\s+([~\/][^\s]+)\s+[$#%>]/, // /path $
+      ];
+      
+      for (const pattern of patterns) {
+        const match = line.match(pattern);
+        if (match && match[1]) {
+          let path = match[1];
+          if (path.startsWith('~')) {
+            path = path.replace('~', os.homedir());
+          }
+          return path;
+        }
+      }
+    }
+    
+    return null;
+  }
+  
+  getSessionState(): SessionState {
+    return {
+      sessionId: this.sessionId,
+      startTime: this.startTime,
+      lastActivity: new Date(),
+      workingDirectory: this.currentWorkingDirectory,
+      environmentVariables: {}, // Would need to query these
+      commandHistory: this.commandHistory,
+      currentPrompt: '', // Would need to track this
+      shellType: this.shellType
+    };
+  }
+  
+  getHistory(): CommandRecord[] {
+    return [...this.commandHistory];
+  }
+  
+  kill(): void {
+    if (this.pty) {
+      console.error(`Vibe Terminal: Killing session ${this.sessionId}`);
+      this.pty.kill();
+    }
+  }
+}
+
+// Singleton instance for the MCP server
+let terminalInstance: VibeTerminal | null = null;
+
+export function getTerminal(): VibeTerminal {
+  if (!terminalInstance) {
+    terminalInstance = new VibeTerminal();
+    
+    // Handle process cleanup
+    process.on('exit', () => {
+      if (terminalInstance) {
+        terminalInstance.kill();
+      }
+    });
+  }
+  return terminalInstance;
+}
+
+export async function executeTerminalCommand(command: string): Promise<TerminalResult> {
+  const terminal = getTerminal();
+  return terminal.execute(command);
 }

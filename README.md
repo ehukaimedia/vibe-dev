@@ -305,85 +305,6 @@ Vibe Dev represents a paradigm shift in how AI assistants interact with developm
 
 This is the better app because it respects how developers actually work - in persistent sessions with full context, not isolated commands.
 
-## The Vibe Dev Advantage
-
-### 🎯 Modern Terminal Emulation vs. Legacy Command Execution
-
-**Legacy Approach (What Others Do):**
-```bash
-# Spawns isolated processes
-execute("cd /project")           # Process 1 dies
-execute("source venv/bin/activate")  # Process 2 dies  
-execute("pip install django")    # Process 3 - wrong directory, no venv!
-
-# Result: Nothing works as expected
-```
-
-**Vibe Dev (Modern PTY Approach):**
-```bash
-# One persistent terminal session
-vibe_terminal("cd /project")              # Terminal changes directory
-vibe_terminal("source venv/bin/activate")  # Terminal activates venv
-vibe_terminal("pip install django")        # Installs in right place!
-
-# Result: Works exactly like your terminal
-```
-
-### 🔬 First-Hand Intelligence vs. Log Parsing
-
-Traditional tools parse logs after execution, missing crucial context. Vibe Dev captures everything in real-time through terminal emulation:
-
-```bash
-# Traditional tools see: "npm test"
-# Vibe Dev sees EVERYTHING:
-# - Command: npm test
-# - Real-time output with ANSI colors
-# - Progress bars and spinners
-# - Interactive prompts and responses  
-# - Exact timing: Test suite 1: 2.3s, Test suite 2: 1.7s
-# - Failed: auth.spec.js:47 - "TypeError: Cannot read property 'token' of undefined"
-# - Exit code: 1
-# - Terminal state after completion
-# - Next suggestion: "Check auth.spec.js line 47 for undefined token access"
-```
-
-### 🔄 Revolutionary Session Persistence
-
-**What Makes It Revolutionary:**
-```bash
-# Start a complex workflow
-vibe_terminal("cd backend && docker compose up -d")
-vibe_terminal("cd ../frontend && npm run dev")
-
-# Network drops, Claude crashes, computer sleeps...
-
-# Hours later
-vibe_recap()
-# Your containers: Still running ✓
-# Your dev server: Still serving ✓  
-# Your terminal: Exactly where you left it ✓
-# Resume command: "cd /path/to/frontend" - you're back!
-```
-
-### 🧩 Natural Developer Workflows
-
-**Interactive Commands Work Perfectly:**
-```bash
-# These all work naturally through PTY
-vibe_terminal("vim config.js")          # Full vim with your config
-vibe_terminal("htop")                   # Live process monitoring
-vibe_terminal("npm init")               # Interactive prompts
-vibe_terminal("ssh server -t 'top'")    # Remote interactive sessions
-```
-
-**Your Entire Environment Persists:**
-```bash
-vibe_terminal("alias ll='ls -la'")      # Creates alias
-vibe_terminal("ll")                     # Alias works!
-vibe_terminal("function gitpush() { git add . && git commit -m '$1' && git push; }")
-vibe_terminal("gitpush 'feature complete'")  # Function works!
-```
-
 ## Installation
 
 Vibe Dev is production-ready and available for immediate use.
@@ -470,7 +391,8 @@ vibe_terminal("echo $API_KEY")  // Outputs: secret123
 // Virtual environments
 vibe_terminal("python -m venv myenv")
 vibe_terminal("source myenv/bin/activate")
-vibe_terminal("pip install requests")  // Installs in myenv```
+vibe_terminal("pip install requests")  // Installs in myenv
+```
 
 ### vibe_recap - Get Intelligent Summaries
 
@@ -500,7 +422,8 @@ Executes a command in a persistent shell session.
 ```typescript
 {
   output: string,    // Command output (ANSI stripped)
-  exitCode: number   // Exit code (0 = success)}
+  exitCode: number   // Exit code (0 = success)
+}
 ```
 
 ### vibe_recap(options?: RecapOptions)
@@ -520,144 +443,6 @@ Provides intelligent analysis of terminal activity.
 **Returns:**
 Contextual analysis based on actual command outcomes.
 
-## Architecture
-
-Vibe Dev leverages modern terminal emulation for unparalleled intelligence gathering:
-
-```
-vibe-dev/
-├── src/
-│   ├── index.ts             # MCP server entry point
-│   ├── vibe-intelligence.ts # Core intelligence engine
-│   ├── vibe-terminal.ts     # PTY-based terminal emulator
-│   └── vibe-recap.ts        # Intelligence-driven analysis
-```
-
-### The Modern Terminal Emulation Advantage
-
-**🚀 How It Works**
-
-```typescript
-// Traditional approach: Spawning isolated commands
-spawn('cd /project', { shell: true })  // Exits immediately
-spawn('npm install', { shell: true })  // New shell, wrong directory
-
-// Vibe Dev: Persistent PTY (Pseudo-Terminal) session
-const terminal = new PTY({ shell: '/bin/bash' })
-terminal.write('cd /project\n')      // Persistent session
-terminal.write('npm install\n')      // Same session, correct context
-```
-
-**🎯 Why PTY Technology?**
-
-PTY (Pseudo-Terminal) is the same technology used by:
-- **VS Code's integrated terminal**
-- **iTerm2 and Terminal.app**
-- **SSH connections**
-- **Docker containers**
-
-This battle-tested approach gives us:
-- True terminal emulation, not command approximation
-- Complete ANSI color and formatting support
-- Interactive command capability (vim, less, top work perfectly)
-- Shell features like tab completion and history
-
-**🧠 Intelligence Through Direct Access**
-
-All terminal operations flow through our PTY session, providing:
-- **Real-time output streaming** - See progress bars and live updates
-- **Accurate timing data** - Millisecond precision on command execution
-- **Complete state tracking** - Every environment change is captured
-- **Interactive detection** - Know when commands are waiting for input
-
-**🛡️ Reliability Through Persistence**
-
-Unlike spawned processes that die on completion:
-- **Session survives disconnects** - PTY keeps running independently
-- **Instant reconnection** - Attach to existing session anytime
-- **State preservation** - All variables, paths, and contexts intact
-- **Crash recovery** - Even if Claude crashes, your work continues
-
-### Design Principles
-
-1. **Minimal Surface Area** - Just two tools, no complexity
-2. **Real Intelligence** - Analyze outcomes, not patterns
-3. **Developer Experience First** - Intuitive interactions that feel natural
-4. **Progressive Workflows** - Each session builds on the last
-
-## Development
-
-### Running Tests
-```bash
-# All tests
-npm test
-
-# Specific test suites
-npm run test:core        # Core functionality
-npm run test:platform    # Cross-platform tests
-npm run test:intelligence # Analysis accuracy
-
-# Watch mode
-npm run test:watch
-```
-
-### Quality Metrics
-Every session must improve ONE aspect:
-- 🧠 **Intelligence** - Better workflow understanding
-- 🎨 **Intuitiveness** - More natural interactions
-- 🛡️ **Reliability** - Graceful error handling and disconnect recovery
-- 🎯 **Simplicity** - Less code, more capability
-
-### Contributing
-
-1. **Test First** - Write failing test before code
-2. **Measure Impact** - Benchmark before/after
-3. **Document Changes** - Update relevant docs
-4. **One Improvement** - Each PR improves one thing
-
-## Technical Superiority
-
-### 📊 Vibe Dev vs Traditional Approaches
-
-| Feature | Traditional Tools | Vibe Dev |
-|---------|------------------|----------|
-| **Session Persistence** | ❌ New shell per command | ✅ Continuous PTY session |
-| **Directory Changes** | ❌ Lost between commands | ✅ Naturally maintained |
-| **Environment Variables** | ❌ Must repeat in each command | ✅ Persist across session |
-| **Virtual Environments** | ❌ Complex workarounds | ✅ Just `source activate` |
-| **Interactive Commands** | ❌ Usually hang or fail | ✅ Work perfectly |
-| **Command History** | ❌ Not available | ✅ Up/down arrows work |
-| **Tab Completion** | ❌ Not possible | ✅ Native shell completion |
-| **Complex Pipes** | ❌ Often break | ✅ 100% compatible |
-| **ANSI Colors** | ❌ Usually stripped | ✅ Full color support |
-| **Progress Bars** | ❌ Static or broken | ✅ Live updates |
-| **Disconnect Recovery** | ❌ Context lost | ✅ Session continues |
-| **Resource Usage** | ❌ New process per command | ✅ One efficient PTY |
-
-### 🔧 Under the Hood
-
-```typescript
-// Traditional approach - 500+ lines of parsing and edge cases
-function executeCommand(cmd: string) {
-  // Parse command
-  // Handle quotes  
-  // Detect pipes
-  // Manage redirects
-  // Spawn process
-  // Capture output
-  // Handle errors
-  // Clean up
-}
-
-// Vibe Dev - Simple and bulletproof
-function vibeTerminal(cmd: string) {
-  terminal.write(cmd + '\n');
-  return terminal.waitForPrompt();
-}
-```
-
-The elegance of using proper terminal emulation eliminates entire categories of bugs while providing superior functionality.
-
 ## Platform Support
 
 | Platform | Status | Notes |
@@ -666,24 +451,7 @@ The elegance of using proper terminal emulation eliminates entire categories of 
 | Windows  | ✅ Supported | Windows ConPTY for native experience |
 | Linux    | ❌ Not Supported | Focus on Mac/Windows |
 
-Modern terminal emulation works consistently across all platforms.
-
-## Roadmap
-
-### Immediate (This Week)
-- [ ] Enhanced context detection in recap
-- [ ] Smarter error suggestions
-- [ ] Windows platform testing
-
-### Short Term (This Month)  
-- [ ] Workflow pattern recognition
-- [ ] Intelligent command suggestions
-- [ ] Project-aware analysis
-
-### Long Term (This Quarter)
-- [ ] Plugin architecture
-- [ ] Custom analyzers
-- [ ] Team workflow sharing
+Modern terminal emulation works consistently across supported platforms.
 
 ## The Vibe Dev Promise
 
