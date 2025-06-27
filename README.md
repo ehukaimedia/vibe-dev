@@ -1,4 +1,4 @@
-# Vibe Dev MVP
+# Vibe Dev
 
 > Two tools, infinite capability. The intelligent choice for efficient development.
 
@@ -11,7 +11,11 @@ Two MCP tools that understand developers:
 ## Quick Start
 
 ```bash
-# Install
+# Clone the repository
+git clone [your-repo-url]
+cd vibe-dev
+
+# Install dependencies (when ready)
 npm install
 
 # Build
@@ -44,26 +48,43 @@ npm test
 ## Project Structure
 
 ```
-vibe-dev-mvp/
+vibe-dev/
 ├── src/
-│   ├── index.ts          # Entry point
-│   ├── vibe-terminal.ts  # Command execution
-│   └── vibe-recap.ts     # Intelligent analysis
-├── test/
-│   └── index.test.ts     # Test suite
-├── docs/                 # The Eight Sacred Documents
-└── dist/                 # Build output
+│   ├── index.ts          # Entry point (5 lines)
+│   ├── vibe-terminal.ts  # Command execution stub (5 lines)
+│   └── vibe-recap.ts     # Intelligent analysis stub (5 lines)
+├── test/                 # Test directory (empty - ready for TDD)
+├── test-env/            # Test environment files
+├── test-venv/           # Python virtual environment testing
+├── docs/                # The Eight Sacred Documents
+├── dist/                # Build output (empty)
+└── .git/                # Git repository (1 commit)
 ```
 
 ## Development Status
 
-This is a clean slate MVP. All functionality is currently stubbed and ready for implementation.
+**Version**: 0.1.0 - Clean Slate MVP  
+**Total Code**: 15 lines (stubs only)  
+**Status**: Ready for Test-Driven Development  
 
-See [docs/STATUS.md](docs/STATUS.md) for current progress.
+All functionality is currently stubbed with "not implemented" errors. This is intentional - we build only what we can prove works through tests.
 
-## Contributing
+See [docs/STATUS.md](docs/STATUS.md) for detailed progress and next steps.
 
-Every commit must make Vibe Dev measurably better. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+## Getting Started with Development
+
+1. **Read the Sacred Documents** - Start with [docs/WORKFLOW.md](docs/WORKFLOW.md)
+2. **Write Your First Test** - Follow [docs/TDD-WORKFLOW.md](docs/TDD-WORKFLOW.md)
+3. **Make It Pass** - Implement only what the test requires
+4. **Measure Performance** - Every feature must be <1s
+5. **Update STATUS.md** - Document your progress
+
+## Why Vibe Dev?
+
+- **Persistent Sessions**: Never lose context between commands
+- **Intelligent Analysis**: Understands what you're trying to do
+- **Instant Response**: Because waiting breaks flow
+- **Two Tools Only**: Simple to understand, powerful to use
 
 ## License
 
@@ -71,4 +92,4 @@ MIT
 
 ---
 
-*Two tools. Infinite capability. Instant response.*
+*From 15 lines of stubs, we build excellence through test-driven development.*
