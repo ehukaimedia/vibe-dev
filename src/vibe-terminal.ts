@@ -35,7 +35,12 @@ export class VibeTerminal {
       cols: config.cols || 80,
       rows: config.rows || 24,
       cwd: this.currentWorkingDirectory,
-      env: { ...process.env, ...config.env }
+      env: { 
+        ...process.env, 
+        ...config.env,
+        LANG: 'en_US.UTF-8',
+        LC_ALL: 'en_US.UTF-8'
+      }
     });
     
     console.error(`Vibe Terminal: Created session ${this.sessionId} with ${this.shellType} shell (PID: ${this.pty.pid})`);
@@ -70,6 +75,7 @@ export class VibeTerminal {
     const resultPromise = new Promise<TerminalResult>((resolve, reject) => {
       let commandOutput = '';
       let promptDetected = false;
+      let timedOut = false;
       let timeoutHandle: NodeJS.Timeout;
       let dataListener: any; // Store the disposable
       
@@ -84,7 +90,7 @@ export class VibeTerminal {
         this.output += data; // Keep full session history
         
         // Check for prompt
-        if (this.isAtPrompt(commandOutput)) {
+        if (this.isAtPrompt(commandOutput) && !timedOut) {
           promptDetected = true;
           cleanup();
           
@@ -131,30 +137,37 @@ export class VibeTerminal {
       // Set timeout for prompt detection
       timeoutHandle = setTimeout(() => {
         if (!promptDetected) {
-          cleanup();
+          timedOut = true;
+          // Send Ctrl+C to interrupt the running command
+          this.pty.write('\x03');
           
-          // Still return what we have
-          const duration = Date.now() - startTime;
-          const result: TerminalResult = {
-            output: this.cleanOutput(commandOutput, command),
-            exitCode: -1, // Unknown
-            duration,
-            sessionId: this.sessionId,
-            timestamp: new Date(),
-            command,
-            workingDirectory: this.currentWorkingDirectory
-          };
-          
-          this.commandHistory.push({
-            timestamp: result.timestamp,
-            command,
-            output: result.output,
-            exitCode: result.exitCode,
-            duration,
-            workingDirectory: this.currentWorkingDirectory
-          });
-          
-          resolve(result);
+          // Give it a moment to process the interrupt
+          setTimeout(() => {
+            cleanup();
+            
+            // Still return what we have
+            const duration = Date.now() - startTime;
+            const result: TerminalResult = {
+              output: this.cleanOutput(commandOutput, command),
+              exitCode: -1, // Timeout
+              duration,
+              sessionId: this.sessionId,
+              timestamp: new Date(),
+              command,
+              workingDirectory: this.currentWorkingDirectory
+            };
+            
+            this.commandHistory.push({
+              timestamp: result.timestamp,
+              command,
+              output: result.output,
+              exitCode: result.exitCode,
+              duration,
+              workingDirectory: this.currentWorkingDirectory
+            });
+            
+            resolve(result);
+          }, 100); // Small delay to allow Ctrl+C to be processed
         }
       }, this.promptTimeout);
       
@@ -225,12 +238,29 @@ export class VibeTerminal {
     
     lines = lines.filter(line => !shellMessages.some(msg => line.includes(msg)));
     
+    // Special handling for first command in session - it may include the prompt
+    const isFirstCommand = this.commandHistory.length === 0;
+    
     // Find where actual command output starts (after command echo)
     let outputStartIndex = -1;
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes(command)) {
+    
+    // Look for the command from the end backwards (most recent occurrence)
+    for (let i = lines.length - 1; i >= 0; i--) {
+      // More precise matching - look for the exact command
+      if (lines[i].trim().endsWith(command) || lines[i].includes(`$ ${command}`) || lines[i].includes(`# ${command}`)) {
         outputStartIndex = i + 1;
         break;
+      }
+    }
+    
+    // If we couldn't find the command echo and it's the first command, try to find output differently
+    if (outputStartIndex === -1 && isFirstCommand) {
+      // For first command, output might start after any line containing the command
+      for (let i = lines.length - 1; i >= 0; i--) {
+        if (lines[i].includes(command)) {
+          outputStartIndex = i + 1;
+          break;
+        }
       }
     }
     
