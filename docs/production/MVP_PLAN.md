@@ -39,6 +39,18 @@ terminal.write('npm install\n')           // Same session, correct directory
 terminal.write('python script.py\n')      // Virtual env active!
 ```
 
+## 📚 Essential Local Files to Study
+
+**IMPORTANT**: Before implementing, study the local files that show what's possible and what to avoid:
+
+See **`LOCAL_FILES_REFERENCE.md`** in this directory for:
+- Intent detection patterns from trackTools.ts
+- Recovery implementation from RecapMCP  
+- Anti-patterns from DesktopCommanderMCP
+- Code patterns to adapt for Vibe Dev
+
+These files provide critical insights into building intelligent terminal analysis.
+
 ## 🏗️ Technical Architecture
 
 ### Core Technology Stack

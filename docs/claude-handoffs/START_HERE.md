@@ -9,7 +9,13 @@
    - Has EVERYTHING you need to know
    - Technical details, code examples, success criteria
 
-2. **`/docs/claude-handoffs/2025-06-27_15-45-00_desktop-to-code.md`** ⭐⭐⭐⭐
+2. **`/docs/production/LOCAL_FILES_REFERENCE.md`** ⭐⭐⭐⭐⭐
+   - Critical local files to study
+   - Shows intent detection patterns from trackTools.ts
+   - RecapMCP implementation insights
+   - What NOT to do from DesktopCommanderMCP
+
+3. **`/docs/claude-handoffs/2025-06-27_15-45-00_desktop-to-code.md`** ⭐⭐⭐⭐
    - Context from today's architecture session
    - Key insights and decisions explained
    - Quick summary of what we're building
