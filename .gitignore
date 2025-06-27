@@ -37,3 +37,10 @@ coverage/
 
 # Documentation archives
 /docs/archive
+
+# Debug test files
+src/test/debug-*.ts
+src/test/debug-*.js
+
+# Git status summaries
+git-status-summary.md
