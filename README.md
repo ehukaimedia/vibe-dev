@@ -664,7 +664,7 @@ The elegance of using proper terminal emulation eliminates entire categories of 
 |----------|--------|-------|
 | macOS    | ✅ Primary | Full PTY support, primary dev platform |
 | Windows  | ✅ Supported | Windows ConPTY for native experience |
-| Linux    | ✅ Supported | Native PTY, full compatibility |
+| Linux    | ❌ Not Supported | Focus on Mac/Windows |
 
 Modern terminal emulation works consistently across all platforms.
 
