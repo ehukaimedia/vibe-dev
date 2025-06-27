@@ -60,10 +60,12 @@ If that works, you're on the right track!
 ## 🔧 First Steps:
 
 1. `npm init -y`
-2. `npm install node-pty @modelcontextprotocol/sdk`
+2. `npm install node-pty @modelcontextprotocol/sdk zod zod-to-json-schema`
 3. Create a simple PTY test
 4. Get prompt detection working
-5. Build from there
+5. Build MCP server following patterns in LOCAL_FILES_REFERENCE.md
+
+**IMPORTANT**: The MCP server setup is documented with complete examples. Follow the RecapMCP pattern - it's simpler and perfect for our two-tool approach.
 
 Remember: **Simple > Complex**. Get basics working first.
 

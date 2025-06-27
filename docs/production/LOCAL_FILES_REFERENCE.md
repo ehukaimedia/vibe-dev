@@ -210,6 +210,199 @@ Command → PTY Session → Live Output → Real-time Analysis
 - `/Users/ehukaimedia/Desktop/AI-Applications/Node/DesktopCommanderMCP-Recap/package.json` - Dependencies
 - `/Users/ehukaimedia/Desktop/AI-Applications/Node/Recap/src/custom-stdio.ts` - MCP setup pattern
 
+## 🚀 MCP Server Implementation Reference
+
+### CRITICAL: Study These Server Implementations
+
+**File 1**: `/Users/ehukaimedia/Desktop/AI-Applications/Node/DesktopCommanderMCP-Recap/src/server.ts`
+- **Why Study**: Shows complex multi-tool MCP server setup
+- **Key Patterns**:
+  ```typescript
+  // Server initialization with capabilities
+  export const server = new Server(
+    { name: "desktop-commander", version: VERSION },
+    { capabilities: { tools: {}, resources: {}, prompts: {} } }
+  );
+  
+  // Required empty handlers for MCP protocol
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [] }));
+  server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts: [] }));
+  
+  // Tool registration with zod schemas
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: [{
+      name: "tool_name",
+      description: "Tool description",
+      inputSchema: zodToJsonSchema(ToolArgsSchema),
+    }]
+  }));
+  ```
+
+**File 2**: `/Users/ehukaimedia/Desktop/AI-Applications/Node/Recap/src/server.ts`
+- **Why Study**: Shows simple single-tool MCP server (like Vibe Dev!)
+- **Key Patterns**:
+  ```typescript
+  // Simplified server for single tool
+  server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest) => {
+    const { name, arguments: args } = request.params;
+    
+    if (name === "recap") {
+      const validatedArgs = RecapArgsSchema.parse(args || {});
+      const result = await handleRecap(validatedArgs);
+      
+      return {
+        content: result.content,
+        isError: result.isError
+      };
+    }
+    
+    throw new Error(`Unknown tool: ${name}`);
+  });
+  ```
+
+### For Vibe Dev Server Implementation
+
+**Follow RecapMCP's Pattern** (simpler, cleaner):
+
+```typescript
+// Your server.ts structure:
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { CallToolRequestSchema, ListToolsRequestSchema, /*...*/ } from "@modelcontextprotocol/sdk/types.js";
+import { zodToJsonSchema } from "zod-to-json-schema";
+
+// Define your schemas
+const VibeTerminalArgsSchema = z.object({
+  command: z.string().describe("Terminal command to execute")
+});
+
+const VibeRecapArgsSchema = z.object({
+  hours: z.number().optional().default(1),
+  type: z.enum(['full', 'status', 'summary']).optional(),
+  format: z.enum(['text', 'json']).optional().default('text')
+});
+
+// Create server
+export const server = new Server({
+  name: "vibe-dev",
+  version: "1.0.0",
+}, {
+  capabilities: { tools: {}, resources: {}, prompts: {} }
+});
+
+// Required empty handlers
+server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [] }));
+server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts: [] }));
+
+// Register your two tools
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: [
+    {
+      name: "vibe_terminal",
+      description: "Execute commands in a persistent terminal session",
+      inputSchema: zodToJsonSchema(VibeTerminalArgsSchema),
+    },
+    {
+      name: "vibe_recap",
+      description: "Get intelligent analysis of your terminal activity",
+      inputSchema: zodToJsonSchema(VibeRecapArgsSchema),
+    }
+  ]
+}));
+
+// Handle tool calls
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+  
+  switch (name) {
+    case "vibe_terminal":
+      const terminalArgs = VibeTerminalArgsSchema.parse(args);
+      return await executeTerminalCommand(terminalArgs);
+      
+    case "vibe_recap":
+      const recapArgs = VibeRecapArgsSchema.parse(args || {});
+      return await generateRecap(recapArgs);
+      
+    default:
+      throw new Error(`Unknown tool: ${name}`);
+  }
+});
+```
+
+### MCP Protocol Requirements
+
+1. **Must Have These Handlers**:
+   - `ListToolsRequestSchema` - Returns available tools
+   - `CallToolRequestSchema` - Executes tools
+   - `ListResourcesRequestSchema` - Return empty array
+   - `ListPromptsRequestSchema` - Return empty array
+
+2. **Response Format**:
+   ```typescript
+   return {
+     content: [{ type: "text", text: "Your output here" }],
+     isError?: boolean  // Optional error flag
+   };
+   ```
+
+3. **Error Handling Pattern**:
+   ```typescript
+   try {
+     // Tool execution
+   } catch (error) {
+     const errorMessage = error instanceof Error ? error.message : String(error);
+     return {
+       content: [{ type: "text", text: `Error: ${errorMessage}` }],
+       isError: true
+     };
+   }
+   ```
+
+### Package Dependencies for MCP
+
+From both projects' package.json:
+```json
+{
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "zod": "^3.22.4",
+    "zod-to-json-schema": "^3.22.5",
+    "node-pty": "^1.0.0"  // For Vibe Dev
+  }
+}
+```
+
+### Entry Point Setup (index.ts)
+
+**Study**: `/Users/ehukaimedia/Desktop/AI-Applications/Node/Recap/src/index.ts`
+**Also See**: `/Users/ehukaimedia/Desktop/AI-Applications/Node/Recap/src/custom-stdio.ts`
+
+**Pattern for Vibe Dev**:
+```typescript
+#!/usr/bin/env node
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { server } from './server.js';
+
+async function runServer() {
+  console.error("Vibe Dev: Starting server...");
+  
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  
+  console.error("Vibe Dev: Server running");
+}
+
+runServer().catch((error) => {
+  console.error("Vibe Dev: Fatal error:", error);
+  process.exit(1);
+});
+```
+
+**Important Notes**:
+- Use `console.error()` for logging (stdout is for MCP protocol)
+- Handle errors gracefully
+- RecapMCP uses FilteredStdioServerTransport to prevent JSON parse errors
+- Consider adding process event handlers for cleanup
+
 ---
 
 **Remember**: These files show what's possible with limited data. You have FULL terminal access. Make it revolutionary.
