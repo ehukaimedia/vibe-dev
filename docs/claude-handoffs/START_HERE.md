@@ -15,7 +15,13 @@
    - RecapMCP implementation insights
    - What NOT to do from DesktopCommanderMCP
 
-3. **`/docs/claude-handoffs/2025-06-27_15-45-00_desktop-to-code.md`** ⭐⭐⭐⭐
+3. **`/docs/production/MCP_SERVER_GUIDE.md`** ⭐⭐⭐⭐⭐
+   - Step-by-step MCP server implementation
+   - Complete code templates ready to use
+   - Common pitfalls and solutions
+   - Testing checklist
+
+4. **`/docs/claude-handoffs/2025-06-27_15-45-00_desktop-to-code.md`** ⭐⭐⭐⭐
    - Context from today's architecture session
    - Key insights and decisions explained
    - Quick summary of what we're building
