@@ -1,0 +1,40 @@
+{
+  "name": "vibe-dev-mvp",
+  "version": "0.1.0",
+  "description": "Vibe Dev MVP - Two tools, infinite capability. Clean slate implementation.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "vibe-dev-mvp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "npm run build && node --test dist/test/**/*.test.js",
+    "test:watch": "npm run build && node --test --watch dist/test/**/*.test.js",
+    "clean": "rm -rf dist",
+    "start": "node dist/src/index.js"
+  },
+  "keywords": [
+    "vibe-dev",
+    "mcp",
+    "terminal",
+    "developer-tools",
+    "intelligent-cli"
+  ],
+  "author": "ehukaimedia",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ehukaimedia/vibe-dev-mvp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ehukaimedia/vibe-dev-mvp/issues"
+  },
+  "homepage": "https://github.com/ehukaimedia/vibe-dev-mvp#readme",
+  "dependencies": {
+    "@types/node": "^24.0.4",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {}
+}
