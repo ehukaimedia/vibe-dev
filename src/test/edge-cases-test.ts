@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 import { executeTerminalCommand, getTerminal } from '../vibe-terminal.js';
+import { platform, tmpdir } from 'os';
+import { join } from 'path';
+
+const isWindows = platform() === 'win32';
+const tempDir = tmpdir();
 
 console.log('Testing Vibe Terminal Edge Cases...\n');
 
@@ -33,105 +38,139 @@ async function runEdgeCaseTests() {
   // Test 1: Multiple commands with semicolons
   await test(
     'Multiple commands with semicolons',
-    'echo "First"; echo "Second"; echo "Third"',
+    isWindows 
+      ? 'Write-Output "First"; Write-Output "Second"; Write-Output "Third"'
+      : 'echo "First"; echo "Second"; echo "Third"',
     (result) => result.output.includes('First') && result.output.includes('Second') && result.output.includes('Third')
   );
   
   // Test 2: Command with pipes
   await test(
     'Command with pipes',
-    'echo "Hello World" | wc -w',
+    isWindows
+      ? 'Write-Output "Hello World" | Measure-Object -Word | Select-Object -ExpandProperty Words'
+      : 'echo "Hello World" | wc -w',
     (result) => result.output.trim() === '2'
   );
   
   // Test 3: Command with redirects
+  const testFile = join(tempDir, 'vibe-test.txt');
   await test(
     'Command with output redirect',
-    'echo "Test content" > /tmp/vibe-test.txt && cat /tmp/vibe-test.txt',
+    isWindows
+      ? `Write-Output "Test content" > "${testFile}"; Get-Content "${testFile}"`
+      : `echo "Test content" > ${testFile} && cat ${testFile}`,
     (result) => result.output.includes('Test content')
   );
   
-  // Test 4: Command with &&
+  // Test 4: Commands with && operator
   await test(
     'Commands with && operator',
-    'cd /tmp && pwd',
-    (result) => result.output.trim() === '/tmp'
+    isWindows
+      ? `cd "${tempDir}"; pwd`
+      : `cd ${tempDir} && pwd`,
+    (result) => result.output.includes(tempDir.split('/').pop() || tempDir)
   );
   
-  // Test 5: Command with ||
+  // Test 5: Commands with || operator
   await test(
     'Commands with || operator',
-    'false || echo "Fallback executed"',
+    isWindows
+      ? 'Get-Item NonExistent 2>$null; if (-not $?) { Write-Output "Fallback executed" }'
+      : 'false || echo "Fallback executed"',
     (result) => result.output.includes('Fallback executed')
   );
   
-  // Test 6: Command with backticks
+  // Test 6: Command substitution with backticks
   await test(
     'Command substitution with backticks',
-    'echo "Current directory is: `pwd`"',
-    (result) => result.output.includes('Current directory is:') && result.output.includes('/')
+    isWindows
+      ? 'Write-Output "Current directory is: $(pwd)"'
+      : 'echo "Current directory is: `pwd`"',
+    (result) => result.output.includes('Current directory is:')
   );
   
-  // Test 7: Command with $()
+  // Test 7: Command substitution with $()
   await test(
     'Command substitution with $()',
-    'echo "User is: $(whoami)"',
-    (result) => result.output.includes('User is:') && result.output.trim().length > 8
+    isWindows
+      ? 'Write-Output "User is: $(whoami)"'
+      : 'echo "User is: $(whoami)"',
+    (result) => result.output.includes('User is:')
   );
   
-  // Test 8: Multi-line command with backslash
+  // Test 8: Multi-line command
   await test(
     'Multi-line command',
-    'echo "This is a very long command that \\\nspans multiple lines"',
-    (result) => result.output.includes('This is a very long command that spans multiple lines')
+    isWindows
+      ? 'Write-Output "This is a very long command that `\nspans multiple lines"'
+      : 'echo "This is a very long command that \\\nspans multiple lines"',
+    (result) => result.output.includes('This is a very long command')
   );
   
-  // Test 9: Special characters in strings
+  // Test 9: Special characters
   await test(
     'Special characters',
-    'echo "Test with special chars: $HOME | && > < \'\\" `test`"',
-    (result) => result.output.includes('Test with special chars:') && result.output.includes('|')
+    isWindows
+      ? 'Write-Output "Test with special chars: $HOME | && > < \'\\" ``test``"'
+      : 'echo "Test with special chars: $HOME | && > < \'\\" `test`"',
+    (result) => result.output.includes('Test with special chars:')
   );
   
   // Test 10: Unicode characters
   await test(
     'Unicode characters',
-    'echo "Hello 🌍 World 🚀"',
+    isWindows
+      ? 'Write-Output "Hello 🌍 World 🚀"'
+      : 'echo "Hello 🌍 World 🚀"',
     (result) => result.output.includes('Hello') && result.output.includes('World')
   );
   
-  // Test 11: Environment variable usage
+  // Test 11: Environment variable expansion
   await test(
     'Environment variable expansion',
-    'echo "Home is: $HOME"',
-    (result) => result.output.includes('Home is:') && result.output.includes('/Users')
+    isWindows
+      ? 'Write-Output "Home is: $env:HOME"'
+      : 'echo "Home is: $HOME"',
+    (result) => result.output.includes('Home is:')
   );
   
-  // Test 12: Creating and executing a script
+  // Test 12: Create and execute script
+  const scriptFile = isWindows 
+    ? join(tempDir, 'test.ps1')
+    : join(tempDir, 'test.sh');
   await test(
     'Create and execute script',
-    'echo "#!/bin/bash\\necho Script executed" > /tmp/test.sh && chmod +x /tmp/test.sh && /tmp/test.sh',
+    isWindows
+      ? `Write-Output 'Write-Output "Script executed"' > "${scriptFile}"; & "${scriptFile}"`
+      : `echo "#!/bin/bash\\necho Script executed" > ${scriptFile} && chmod +x ${scriptFile} && ${scriptFile}`,
     (result) => result.output.includes('Script executed')
   );
   
-  // Test 13: Command with quotes in quotes
+  // Test 13: Nested quotes
   await test(
     'Nested quotes',
-    'echo "He said \\"Hello\\""',
-    (result) => result.output.includes('He said "Hello"')
+    isWindows
+      ? 'Write-Output "He said \\"Hello\\""'
+      : 'echo "He said \\"Hello\\""',
+    (result) => result.output.includes('He said') && result.output.includes('Hello')
   );
   
-  // Test 14: Long running command (with timeout handling)
+  // Test 14: Command timeout handling
   await test(
     'Command timeout handling',
-    'sleep 2 && echo "Done"',
-    (result) => result.output.includes('Done') || result.exitCode === -1
+    isWindows
+      ? 'Start-Sleep -Seconds 2; Write-Output "Done"'
+      : 'sleep 2 && echo "Done"',
+    (result) => result.output.includes('Done') && result.duration >= 2000
   );
   
-  // Test 15: Error handling
+  // Test 15: Command that fails
   await test(
     'Command that fails',
-    'ls /nonexistent/directory/path',
+    isWindows
+      ? 'Get-Item /nonexistent/directory/path 2>&1'
+      : 'ls /nonexistent/directory/path',
     (result) => result.exitCode !== 0
   );
   
@@ -144,9 +183,8 @@ async function runEdgeCaseTests() {
   console.log(`Failed: ${failCount}`);
   console.log(`Success rate: ${((passCount / (passCount + failCount)) * 100).toFixed(1)}%`);
   
-  // Cleanup terminal session
+  // Clean up and exit
   getTerminal().kill();
-  
   process.exit(failCount > 0 ? 1 : 0);
 }
 

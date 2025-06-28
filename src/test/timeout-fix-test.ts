@@ -11,8 +11,9 @@ async function testTimeoutFix() {
     console.log(`   Exit code: ${result1.exitCode}`);
     console.log(`   Duration: ${result1.duration}ms\n`);
     
-    console.log('2. Testing command that will timeout (sleep 4):');
-    const result2 = await executeTerminalCommand('sleep 4');
+    console.log('2. Testing command that will timeout:');
+    const sleepCommand = process.platform === 'win32' ? 'timeout /t 4' : 'sleep 4';
+    const result2 = await executeTerminalCommand(sleepCommand);
     console.log(`   Output: ${result2.output}`);
     console.log(`   Exit code: ${result2.exitCode}`);
     console.log(`   Duration: ${result2.duration}ms`);
