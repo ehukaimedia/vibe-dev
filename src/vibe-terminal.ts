@@ -23,7 +23,7 @@ export class VibeTerminal {
     this.sessionId = randomUUID();
     this.startTime = new Date();
     this.currentWorkingDirectory = config.cwd || process.cwd();
-    this.promptTimeout = config.promptTimeout || 3000; // Default 3 second timeout
+    this.promptTimeout = config.promptTimeout || 5000; // Default 5 second timeout
     
     // Determine shell
     const defaultShell = config.shell || this.getDefaultShell();
@@ -39,7 +39,10 @@ export class VibeTerminal {
         ...process.env, 
         ...config.env,
         LANG: 'en_US.UTF-8',
-        LC_ALL: 'en_US.UTF-8'
+        LC_ALL: 'en_US.UTF-8',
+        GH_NO_UPDATE_NOTIFIER: '1', // Disable gh update notifications
+        GH_FORCE_TTY: '0', // Prevent gh from using TTY features
+        CI: '1' // Make CLI tools think they're in CI mode
       }
     });
     
@@ -284,6 +287,9 @@ export class VibeTerminal {
       .replace(/\x1b\[[0-9;]*m/g, '') // Color codes
       .replace(/\x1b\[[0-9]*[GKJH]/g, '') // Cursor movement
       .replace(/\x1b\[\?[0-9]+[hl]/g, '') // Mode changes
+      .replace(/\x1b\]11;\?\x1b\\/g, '') // OSC 11 query (gh uses this)
+      .replace(/\x1b\[6n/g, '') // Cursor position request (gh uses this)
+      .replace(/\]11;\?\\?\[6n/g, '') // Combined OSC 11 + cursor position
       .replace(/\r/g, '') // Carriage returns
       .replace(/\[K/g, '') // Clear line
       .replace(/\[\?2004[lh]/g, '') // Bracketed paste mode
