@@ -5,6 +5,18 @@
 
 ## 🎉 Current Phase: MVP COMPLETE - Production Ready Verified!
 
+### ⚠️ CRITICAL ISSUE DISCOVERED (2025-06-27 13:20:00 - Claude Desktop)
+
+**GitHub CLI (`gh`) Incompatibility Found!**
+
+While verifying production readiness, discovered that vibe_terminal fails with `gh` commands:
+- **Problem**: Outputs `]11;?\[6n` (terminal capability queries) and times out
+- **Impact**: Can't use vibe_terminal for GitHub CLI operations  
+- **Workaround**: Desktop Commander's execute_command works fine
+- **Priority**: HIGH - This undermines core value proposition
+
+Created handoff for immediate fix: `2025-06-27_13-20-00_desktop-to-code.md`
+
 ### 🔍 Latest Update (2025-06-27 18:30:00 - Claude Desktop)
 
 **PRODUCTION READINESS VERIFIED!**
