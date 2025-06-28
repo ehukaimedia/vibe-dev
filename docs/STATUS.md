@@ -179,3 +179,45 @@ The MVP is complete and verified. Vibe Dev delivers on its promises:
 3. All platforms should pass
 
 ---
+
+## 🚀 CI/CD Windows Fix Applied - 2025-06-28 04:30 HST
+
+### Issue Fixed:
+- Windows error: "'CI' is not recognized as an internal or external command"
+- Cause: Unix-style env syntax `CI=true command` doesn't work on Windows
+- Solution: Removed inline env var (GitHub Actions already sets CI=true)
+
+### Progress:
+1. ✅ Test hanging fixed - tests complete in seconds
+2. ✅ Node 18 compatibility fixed - removed unsupported flags
+3. ✅ Windows compatibility fixed - cross-platform test:ci script
+4. 🔄 New CI/CD run started (ID: 15940478827)
+
+### Achievement:
+- From 30+ minute hangs to proper test execution!
+- All platforms should now pass CI/CD
+
+---
+
+## ⚠️ Critical Testing Infrastructure Needed - 2025-06-28 04:45 HST
+
+### Major Discovery:
+We've been doing testing WRONG:
+- No Jest installed despite referencing it
+- ALL meaningful tests skip in CI (PTY, MCP)
+- No actual functionality being tested
+- Windows "fix" just bypasses the problem
+
+### Handoff Created for Proper Implementation:
+- **File**: `/docs/claude-handoffs/2025-06-28_04-45-00_proper-testing-infrastructure.md`
+- **Purpose**: Implement REAL testing with Jest, mocks, and actual validation
+- **Priority**: CRITICAL - Current CI/CD is meaningless
+
+### What Claude Code Will Do:
+1. Install Jest with TypeScript support
+2. Create proper PTY mocks (not skips!)
+3. Write real unit and integration tests
+4. Ensure Windows compatibility is tested, not bypassed
+5. Make CI/CD actually validate functionality
+
+---
