@@ -21,4 +21,5 @@ export default {
     '!src/**/*.test.ts',
     '!src/**/*.spec.ts',
   ],
+  modulePathIgnorePatterns: ['<rootDir>/dist/'],
 };
