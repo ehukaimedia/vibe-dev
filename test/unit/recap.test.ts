@@ -1,10 +1,10 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { generateRecap } from './vibe-recap.js';
-import { getTerminal } from './vibe-terminal.js';
-import { CommandRecord, SessionState } from './types.js';
+import { generateRecap } from '../../src/vibe-recap.js';
+import { getTerminal } from '../../src/vibe-terminal.js';
+import { CommandRecord, SessionState } from '../../src/types.js';
 
 // Mock the terminal module
-jest.mock('./vibe-terminal');
+jest.mock('../../src/vibe-terminal');
 
 describe('Recap Generation', () => {
   const mockGetTerminal = getTerminal as jest.MockedFunction<typeof getTerminal>;

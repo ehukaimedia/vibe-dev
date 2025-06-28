@@ -57,6 +57,10 @@ export class VibeTerminal {
     if (os.platform() === 'win32') {
       return 'powershell.exe';
     }
+    // Check SHELL environment variable first
+    if (process.env.SHELL) {
+      return process.env.SHELL;
+    }
     // Use bash by default on macOS for better compatibility
     return '/bin/bash';
   }
@@ -186,8 +190,15 @@ export class VibeTerminal {
     // Wait for the command to complete
     const result = await resultPromise;
     
-    // After a cd command completes, update the working directory
-    if (command.trim().startsWith('cd ') || command.trim() === 'cd') {
+    // After a command that includes cd, update the working directory
+    const trimmedCommand = command.trim();
+    const hasCdCommand = trimmedCommand.startsWith('cd ') || 
+                        trimmedCommand === 'cd' || 
+                        trimmedCommand.includes(' cd ') ||
+                        trimmedCommand.includes('&& cd ') ||
+                        trimmedCommand.includes('; cd ');
+    
+    if (hasCdCommand) {
       await this.updateWorkingDirectoryAfterCd();
       
       // Update the last command in history with the new working directory
@@ -195,6 +206,9 @@ export class VibeTerminal {
         const lastCommand = this.commandHistory[this.commandHistory.length - 1];
         lastCommand.workingDirectory = this.currentWorkingDirectory;
       }
+      
+      // Update the result with the new working directory
+      result.workingDirectory = this.currentWorkingDirectory;
     }
     
     return result;
@@ -210,13 +224,15 @@ export class VibeTerminal {
         return /\$\s*$/.test(lastLine) || /#\s*$/.test(lastLine);
       
       case 'zsh':
-        // ZSH with its fancy prompts
+        // ZSH with its fancy prompts and escape sequences
         return /\$\s*$/.test(lastLine) || 
                /#\s*$/.test(lastLine) ||
                /%\s*$/.test(lastLine) ||
                />\s*$/.test(lastLine) ||
-               // Handle the specific prompt we saw in testing
-               /\[K\[\?2004h/.test(lastLine);
+               // Handle zsh bracketed paste mode
+               /\?2004h$/.test(lastLine) ||
+               // Handle escape sequences at end
+               /\x1B\[K.*\x1B\[\?2004h$/.test(lastLine);
       
       case 'fish':
         return />\s*$/.test(lastLine) || /»\s*$/.test(lastLine);
@@ -232,8 +248,30 @@ export class VibeTerminal {
   
   private cleanOutput(rawOutput: string, command: string): string {
     if (this.disableOutputCleaning) {
-      // In test mode, just remove trailing prompts
-      return rawOutput.replace(/\s*\$\s*$/, '').trim();
+      // In test mode, clean more aggressively for zsh
+      let cleaned = rawOutput;
+      
+      // Remove ANSI escape sequences
+      cleaned = cleaned.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+      cleaned = cleaned.replace(/\x1B\[[0-9;]*\?[0-9]*[a-zA-Z]/g, '');
+      
+      // Remove backspace characters
+      cleaned = cleaned.replace(/.\x08/g, '');
+      
+      // Extract just the output after the command
+      const lines = cleaned.split('\n');
+      const commandIndex = lines.findIndex(line => line.includes(command));
+      if (commandIndex >= 0) {
+        // Get lines after the command, excluding trailing prompt
+        const outputLines = lines.slice(commandIndex + 1);
+        // Remove the last line if it looks like a prompt
+        if (outputLines.length > 0 && /[%$#>]\s*$/.test(outputLines[outputLines.length - 1])) {
+          outputLines.pop();
+        }
+        cleaned = outputLines.join('\n');
+      }
+      
+      return cleaned.trim();
     }
     
     // Split by lines

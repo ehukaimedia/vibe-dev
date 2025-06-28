@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { VibeTerminal } from '../vibe-terminal.js';
+import { VibeTerminal } from '../../src/vibe-terminal.js';
 import { platform } from 'os';
 
 const isWindows = platform() === 'win32';

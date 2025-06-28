@@ -10,12 +10,13 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "jest",
-    "test:ci": "cross-env CI=true jest --forceExit --detectOpenHandles",
-    "test:watch": "jest --watch",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
+    "test:ci": "cross-env CI=true NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --detectOpenHandles",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
     "clean": "rm -rf dist",
     "start": "node dist/src/index.js",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
+    "test:validate": "node scripts/test/validate-organization.js"
   },
   "keywords": [
     "vibe-dev",

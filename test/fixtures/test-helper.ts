@@ -1,4 +1,4 @@
-import { getTerminal } from '../vibe-terminal.js';
+import { getTerminal } from '../../src/vibe-terminal.js';
 
 export function cleanupAfterTest() {
   const terminal = getTerminal();

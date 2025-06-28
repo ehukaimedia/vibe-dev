@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { executeTerminalCommand } from '../vibe-terminal.js';
-import { generateRecap } from '../vibe-recap.js';
+import { executeTerminalCommand } from '../../src/vibe-terminal.js';
+import { generateRecap } from '../../src/vibe-recap.js';
 import { platform } from 'os';
 
 const isWindows = platform() === 'win32';

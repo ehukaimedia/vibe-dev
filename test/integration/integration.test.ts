@@ -1,8 +1,8 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
 // Mock the terminal and recap modules before importing server
-jest.mock('./vibe-terminal.js');
-jest.mock('./vibe-recap.js');
+jest.mock('../../src/vibe-terminal.js');
+jest.mock('../../src/vibe-recap.js');
 
 describe('MCP Server Integration', () => {
   beforeEach(() => {
@@ -10,7 +10,7 @@ describe('MCP Server Integration', () => {
   });
 
   it('should handle vibe_terminal tool execution', async () => {
-    const { executeTerminalCommand } = await import('./vibe-terminal.js');
+    const { executeTerminalCommand } = await import('../../src/vibe-terminal.js');
     const mockExecute = executeTerminalCommand as jest.MockedFunction<typeof executeTerminalCommand>;
     
     mockExecute.mockResolvedValue({
@@ -31,7 +31,7 @@ describe('MCP Server Integration', () => {
   });
 
   it('should handle vibe_recap tool execution', async () => {
-    const { generateRecap } = await import('./vibe-recap.js');
+    const { generateRecap } = await import('../../src/vibe-recap.js');
     const mockRecap = generateRecap as jest.MockedFunction<typeof generateRecap>;
     
     mockRecap.mockResolvedValue('Test recap content');
@@ -43,7 +43,7 @@ describe('MCP Server Integration', () => {
   });
 
   it('should handle tool execution errors', async () => {
-    const { executeTerminalCommand } = await import('./vibe-terminal.js');
+    const { executeTerminalCommand } = await import('../../src/vibe-terminal.js');
     const mockExecute = executeTerminalCommand as jest.MockedFunction<typeof executeTerminalCommand>;
     
     mockExecute.mockRejectedValue(new Error('Command failed'));
@@ -52,7 +52,7 @@ describe('MCP Server Integration', () => {
   });
 
   it('should use default values for recap', async () => {
-    const { generateRecap } = await import('./vibe-recap.js');
+    const { generateRecap } = await import('../../src/vibe-recap.js');
     const mockRecap = generateRecap as jest.MockedFunction<typeof generateRecap>;
     
     mockRecap.mockResolvedValue('Default recap');

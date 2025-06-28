@@ -7,6 +7,99 @@
 **For Claude Desktop**: Write tests that demonstrate issues
 **For Claude Code**: Write tests before implementing fixes
 
+## Cross-Platform TDD (NEW!)
+
+### PC as Test Writer, Mac as Implementer
+
+**The Perfect TDD Split**:
+- **Windows PC**: Writes failing tests that prove bugs exist
+- **Mac/Linux**: Implements code to make tests pass
+
+### PC Workflow - Write the Test
+```bash
+# 1. Discover issue through testing
+vibe_terminal("npm test")
+
+# 2. Write a failing test that proves the bug
+desktop-commander:write_file path="test/unit/bug-proof.test.ts"
+
+# 3. Run test to confirm it fails
+vibe_terminal("npm test test/unit/bug-proof.test.ts")
+
+# 4. Create handoff explaining the issue
+desktop-commander:write_file path="docs/claude-handoffs/YYYY-MM-DD_test-and-issue.md"
+
+# 5. Push BOTH test and handoff (ALLOWED!)
+vibe_terminal("git add test/**/*.test.ts docs/claude-handoffs/*.md")
+vibe_terminal("git commit -m 'test: failing test for [issue]'")
+vibe_terminal("git push")  # Safe - only tests and handoffs
+```
+
+### Mac Workflow - Make it Pass
+```bash
+# 1. Pull tests and handoffs from PC
+git pull
+
+# 2. Run the new test - confirm it fails
+npm test test/unit/bug-proof.test.ts
+
+# 3. Implement fix in src/
+# Edit production code to make test pass
+
+# 4. Run test again - confirm it passes
+npm test test/unit/bug-proof.test.ts
+
+# 5. Run all tests - ensure no regression
+npm test
+
+# 6. Push implementation
+git add -A
+git commit -m "fix: [issue] - makes test pass"
+git push
+```
+
+### What PC Can Push
+- ✅ `test/**/*.test.ts` - All test files
+- ✅ `test/**/*.spec.ts` - All spec files  
+- ✅ `docs/claude-handoffs/*.md` - Handoff documents
+- ❌ `src/*` - NEVER production code
+- ❌ `dist/*` - NEVER build output
+
+### Example Cross-Platform TDD Session
+
+**On PC - Find and Prove Bug**:
+```typescript
+// test/unit/output-isolation.test.ts
+test('commands should return only their own output', async () => {
+  const result1 = await vibe_terminal('echo first');
+  const result2 = await vibe_terminal('echo second');
+  
+  // This will fail, proving the bug
+  expect(result2.output).toBe('second\n');
+  expect(result2.output).not.toContain('first');
+});
+```
+
+**PC Handoff**:
+```markdown
+# Output Isolation Bug
+
+## Test Created
+`test/unit/output-isolation.test.ts`
+
+## What It Proves
+Commands are accumulating output instead of returning only their own.
+
+## Expected Behavior
+Each command should return only its output, not previous commands.
+
+## Run Test
+npm test test/unit/output-isolation.test.ts
+```
+
+**On Mac - Implementation**:
+Claude Code pulls, sees failing test, implements fix in `src/vibe-terminal.ts` to make it pass.
+
 ## Test Environment Setup
 
 We have dedicated test environments:
@@ -311,6 +404,268 @@ test('feature X maintains performance', async () => {
   expect(withFeature).toBeLessThan(baseline * 1.1); // Max 10% slower
 });
 ```
+
+## CI/CD GitHub Actions
+
+### Main Workflow (.github/workflows/test.yml)
+
+```yaml
+name: Test & Quality Gates
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [20.x, 22.x]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build
+      run: npm run build
+    
+    - name: Run tests
+      run: npm test
+      
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ matrix.os }}-${{ matrix.node-version }}
+        path: test-results/
+
+  performance:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Need full history for baseline
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build
+      run: npm run build
+      
+    - name: Checkout base branch
+      run: |
+        git checkout ${{ github.base_ref }}
+        npm ci
+        npm run build
+    
+    - name: Capture baseline performance
+      run: |
+        npm run test:performance -- --json > baseline.json
+        echo "::set-output name=baseline::$(cat baseline.json)"
+    
+    - name: Checkout PR branch
+      run: |
+        git checkout ${{ github.head_ref }}
+        npm ci
+        npm run build
+    
+    - name: Run performance tests
+      run: npm run test:performance -- --json > current.json
+    
+    - name: Compare performance
+      run: |
+        node scripts/compare-performance.js baseline.json current.json
+        # Fails if any metric degrades >10%
+
+  coverage:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build
+      run: npm run build
+    
+    - name: Run tests with coverage
+      run: npm run test:coverage
+    
+    - name: Check coverage thresholds
+      run: |
+        npm run coverage:check
+        # Fails if coverage < 80% lines, < 70% branches
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        fail_ci_if_error: true
+
+  quality:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Lint
+      run: npm run lint
+    
+    - name: Type check
+      run: npm run type-check
+    
+    - name: Check test organization
+      run: |
+        # Ensure no test files in src/
+        if find src -name "*.test.ts" -o -name "*.spec.ts" | grep .; then
+          echo "❌ Test files found in src/ directory!"
+          exit 1
+        fi
+        echo "✅ No test files in src/"
+```
+
+### Performance Comparison Script (scripts/compare-performance.js)
+
+```javascript
+#!/usr/bin/env node
+import { readFileSync } from 'fs';
+
+const baseline = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+const current = JSON.parse(readFileSync(process.argv[3], 'utf8'));
+
+const MAX_DEGRADATION = 1.1; // 10% slower allowed
+
+let failed = false;
+
+for (const [test, baselineTime] of Object.entries(baseline.times)) {
+  const currentTime = current.times[test];
+  
+  if (!currentTime) {
+    console.warn(`⚠️  Test ${test} missing in current results`);
+    continue;
+  }
+  
+  const ratio = currentTime / baselineTime;
+  
+  if (ratio > MAX_DEGRADATION) {
+    console.error(`❌ Performance regression in ${test}:`);
+    console.error(`   Baseline: ${baselineTime}ms`);
+    console.error(`   Current:  ${currentTime}ms`);
+    console.error(`   Degradation: ${((ratio - 1) * 100).toFixed(1)}%`);
+    failed = true;
+  } else if (ratio < 0.9) {
+    console.log(`✅ Performance improved in ${test}: ${((1 - ratio) * 100).toFixed(1)}% faster`);
+  }
+}
+
+if (failed) {
+  console.error('\n❌ Performance regression detected!');
+  process.exit(1);
+} else {
+  console.log('\n✅ No performance regressions');
+}
+```
+
+### Branch Protection Rules
+
+Configure in GitHub repository settings:
+
+1. **Require status checks to pass**:
+   - test (ubuntu-latest, 20.x)
+   - test (macos-latest, 20.x)
+   - test (windows-latest, 20.x)
+   - performance
+   - coverage
+   - quality
+
+2. **Require branches to be up to date**
+
+3. **Require code review** from at least 1 reviewer
+
+4. **Dismiss stale reviews** when new commits pushed
+
+5. **Restrict who can push** to main branch
+
+### Coverage Enforcement (package.json)
+
+```json
+{
+  "scripts": {
+    "test:coverage": "jest --coverage",
+    "coverage:check": "jest --coverage --coverageThreshold='{\"global\":{\"lines\":80,\"branches\":70,\"functions\":80,\"statements\":80}}'",
+    "test:performance": "jest test/performance --testTimeout=30000"
+  }
+}
+```
+
+### Pre-commit Hooks (.husky/pre-commit)
+
+```bash
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Run tests
+npm test || exit 1
+
+# Check for test files in src/
+if find src -name "*.test.ts" -o -name "*.spec.ts" | grep -q .; then
+  echo "❌ Error: Test files found in src/ directory"
+  echo "Move all test files to test/ directory"
+  exit 1
+fi
+
+# Run quick performance check
+npm run test:performance -- --testNamePattern="simple echo" || exit 1
+```
+
+### Regression Prevention Metrics
+
+Track these in every CI run:
+1. **Test Count**: Must never decrease
+2. **Coverage**: Must never decrease
+3. **Performance**: Max 10% degradation allowed
+4. **Build Size**: Monitor for unexpected growth
+5. **Type Coverage**: Maintain 100% type safety
 
 ## TDD for Bug Fixes
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { executeTerminalCommand } from '../vibe-terminal.js';
-import { generateRecap } from '../vibe-recap.js';
-import { cleanupAfterTest } from './test-helper.js';
+import { executeTerminalCommand } from '../../src/vibe-terminal.js';
+import { generateRecap } from '../../src/vibe-recap.js';
+import { cleanupAfterTest } from '../fixtures/test-helper.js';
 
 test('Summary recap analyzes patterns correctly', async () => {
   // Execute commands in sequence
