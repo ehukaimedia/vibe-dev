@@ -24,15 +24,8 @@ try {
 
   const args = ['--test'];
   
-  // Add timeout if in CI or passed via command line
-  if (process.env.CI || process.argv.includes('--timeout')) {
-    args.push('--test-timeout=30000');
-  }
-  
-  // Add force exit in CI
-  if (process.env.CI) {
-    args.push('--test-force-exit');
-  }
+  // Note: Node 18 doesn't support --test-timeout or --test-force-exit
+  // Tests will run without timeout, but CI environment is properly set
   
   args.push(...testFiles);
   
