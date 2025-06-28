@@ -10,11 +10,12 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "npm run build && node scripts/run-tests.js",
-    "test:ci": "npm run build && node scripts/run-tests.js",
-    "test:watch": "npm run build && node --test --watch dist/src/test/*-test.js",
+    "test": "jest",
+    "test:ci": "cross-env CI=true jest --forceExit --detectOpenHandles",
+    "test:watch": "jest --watch",
     "clean": "rm -rf dist",
-    "start": "node dist/src/index.js"
+    "start": "node dist/src/index.js",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [
     "vibe-dev",
@@ -46,6 +47,12 @@
     "test": "test"
   },
   "devDependencies": {
+    "@jest/globals": "^30.0.3",
+    "@types/jest": "^30.0.0",
+    "cross-env": "^7.0.3",
+    "jest": "^30.0.3",
+    "jest-mock-extended": "^4.0.0",
+    "ts-jest": "^29.4.0",
     "tsx": "^4.20.3"
   }
 }
