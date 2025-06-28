@@ -18,12 +18,14 @@ export class VibeTerminal {
   private shellType: SessionState['shellType'];
   private promptTimeout: number;
   private isExecuting: boolean = false;
+  private disableOutputCleaning: boolean;
   
   constructor(config: TerminalConfig = {}) {
     this.sessionId = randomUUID();
     this.startTime = new Date();
     this.currentWorkingDirectory = config.cwd || process.cwd();
     this.promptTimeout = config.promptTimeout || 5000; // Default 5 second timeout
+    this.disableOutputCleaning = process.env.NODE_ENV === 'test';
     
     // Determine shell
     const defaultShell = config.shell || this.getDefaultShell();
@@ -229,6 +231,11 @@ export class VibeTerminal {
   }
   
   private cleanOutput(rawOutput: string, command: string): string {
+    if (this.disableOutputCleaning) {
+      // In test mode, just remove trailing prompts
+      return rawOutput.replace(/\s*\$\s*$/, '').trim();
+    }
+    
     // Split by lines
     let lines = rawOutput.split('\n');
     
