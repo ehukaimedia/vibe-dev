@@ -11,6 +11,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "npm run build && node scripts/run-tests.js",
+    "test:ci": "npm run build && CI=true node scripts/run-tests.js -- --timeout=30000",
     "test:watch": "npm run build && node --test --watch dist/src/test/*-test.js",
     "clean": "rm -rf dist",
     "start": "node dist/src/index.js"

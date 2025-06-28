@@ -22,8 +22,27 @@ try {
 
   console.log(`Found ${testFiles.length} test files`);
 
-  const args = ['--test', ...testFiles];
-  const child = spawn(process.execPath, args, { stdio: 'inherit' });
+  const args = ['--test'];
+  
+  // Add timeout if in CI or passed via command line
+  if (process.env.CI || process.argv.includes('--timeout')) {
+    args.push('--test-timeout=30000');
+  }
+  
+  // Add force exit in CI
+  if (process.env.CI) {
+    args.push('--test-force-exit');
+  }
+  
+  args.push(...testFiles);
+  
+  const child = spawn(process.execPath, args, { 
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      CI: process.env.CI || 'false'
+    }
+  });
 
   child.on('close', (code) => {
     // Give a moment for cleanup

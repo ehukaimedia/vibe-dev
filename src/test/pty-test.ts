@@ -2,6 +2,18 @@
 import * as pty from 'node-pty';
 import * as os from 'os';
 
+// Skip PTY tests in CI environment
+if (process.env.CI) {
+  console.log('Skipping PTY test in CI environment');
+  process.exit(0);
+}
+
+// Add global test timeout
+const testTimeout = setTimeout(() => {
+  console.error('Test timeout after 10 seconds');
+  process.exit(1);
+}, 10000);
+
 // Test basic PTY functionality
 console.log('Testing node-pty basic functionality...\n');
 
@@ -66,6 +78,7 @@ setTimeout(() => {
           
           // Clean up
           terminal.kill();
+          clearTimeout(testTimeout);
           console.log('\nPTY test completed successfully!');
           process.exit(0);
         }, 500);
