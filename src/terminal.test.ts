@@ -65,7 +65,7 @@ describe('VibeTerminal', () => {
     // Output should not contain the command itself or shell prompts
     expect(result.output).not.toContain('echo "test"');
     expect(result.output).not.toContain('$');
-    expect(result.output.trim()).toBe('"test"');
+    expect(result.output.trim()).toBe('test');
   });
 
   it('should handle empty commands', async () => {

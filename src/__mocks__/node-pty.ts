@@ -29,7 +29,7 @@ class MockPty extends EventEmitter implements IPty {
     this.rows = options.rows || 24;
     this.process = file;
     
-    // Simulate shell prompt
+    // Simulate initial shell prompt
     setTimeout(() => {
       if (this._isOpen) {
         this._emitData('$ ');
@@ -57,43 +57,58 @@ class MockPty extends EventEmitter implements IPty {
   write(data: string): void {
     if (!this._isOpen) return;
     
-    const trimmedData = data.trim();
+    const command = data.replace(/\r/g, ''); // Remove carriage return
     
-    // Simulate command execution
+    // When a command is written to the PTY, it echoes back what was typed
+    // The terminal already shows "$ " prompt, so command appears after it
+    this._emitData(command);
+    
+    // Process the command after a small delay (simulating execution)
     setTimeout(() => {
-      // Echo the command back with prompt (like real terminal)
-      this._emitData(`$ ${trimmedData}\n`);
+      const trimmedData = command.trim();
       
+      // Process the command and generate output
       if (trimmedData === 'exit') {
         this.destroy();
+        return;
       } else if (trimmedData.startsWith('echo ')) {
         // Extract text after echo, handling quotes properly
-        const echoMatch = trimmedData.match(/echo\s+["']?(.+?)["']?\s*$/);
-        if (echoMatch) {
-          this._emitData(echoMatch[1] + '\n$ ');
-        } else {
-          // Simple fallback
-          const output = trimmedData.substring(5);
-          this._emitData(output + '\n$ ');
+        let output = trimmedData.substring(5).trim();
+        
+        // Remove surrounding quotes if present
+        if ((output.startsWith('"') && output.endsWith('"')) ||
+            (output.startsWith("'") && output.endsWith("'"))) {
+          output = output.substring(1, output.length - 1);
         }
+        
+        // Special handling for environment variables
+        if (output.includes('$')) {
+          if (output === '$TEST_VAR') {
+            output = '123';
+          } else {
+            output = ''; // Unknown env var
+          }
+        }
+        
+        // Emit the output
+        this._emitData(output + '\n');
       } else if (trimmedData === 'pwd') {
-        this._emitData('/mock/directory\n$ ');
+        this._emitData('/mock/directory\n');
       } else if (trimmedData.startsWith('export ')) {
         // Simulate environment variable setting (no output)
-        this._emitData('$ ');
-      } else if (trimmedData === 'echo $TEST_VAR') {
-        // Return 123 if TEST_VAR was set
-        this._emitData('123\n$ ');
       } else if (trimmedData.startsWith('sleep ')) {
-        // Don't respond immediately for sleep commands
-        // Just don't emit prompt
+        // For sleep commands, don't emit anything to simulate timeout
+        // The terminal's timeout logic should kick in
         return;
       } else if (trimmedData === '') {
-        this._emitData('$ ');
+        // Empty command, just show new prompt
       } else {
-        this._emitData(`mock output for: ${trimmedData}\n$ `);
+        this._emitData(`mock output for: ${trimmedData}\n`);
       }
-    }, 20);
+      
+      // Emit the prompt after command execution
+      this._emitData('$ ');
+    }, 50);
   }
 
   resize(cols: number, rows: number): void {
