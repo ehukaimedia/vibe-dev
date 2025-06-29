@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from '@jest/globals';
-import { VibeTerminal } from '../../src/vibe-terminal.js';
+import { VibeTerminal, createVibeTerminal } from '../../src/vibe-terminal.js';
 
 describe('Unix Shell Detection', () => {
   let terminal: VibeTerminal | null = null;
@@ -12,17 +12,17 @@ describe('Unix Shell Detection', () => {
   });
   
   it('should detect bash shell', () => {
-    terminal = new VibeTerminal({ shell: '/bin/bash' });
+    terminal = createVibeTerminal({ shell: '/bin/bash' });
     expect(terminal.getSessionState().shellType).toBe('bash');
   });
   
   it('should detect zsh shell', () => {
-    terminal = new VibeTerminal({ shell: '/bin/zsh' });
+    terminal = createVibeTerminal({ shell: '/bin/zsh' });
     expect(terminal.getSessionState().shellType).toBe('zsh');
   });
   
   it('should detect fish shell', () => {
-    terminal = new VibeTerminal({ shell: '/usr/local/bin/fish' });
+    terminal = createVibeTerminal({ shell: '/usr/local/bin/fish' });
     expect(terminal.getSessionState().shellType).toBe('fish');
   });
   
@@ -30,7 +30,7 @@ describe('Unix Shell Detection', () => {
     const originalShell = process.env.SHELL;
     process.env.SHELL = '/usr/local/bin/zsh';
     
-    terminal = new VibeTerminal({});
+    terminal = createVibeTerminal({});
     expect(terminal.getSessionState().shellType).toBe('zsh');
     
     // Restore original
@@ -45,7 +45,7 @@ describe('Unix Shell Detection', () => {
     const originalShell = process.env.SHELL;
     delete process.env.SHELL;
     
-    terminal = new VibeTerminal({});
+    terminal = createVibeTerminal({});
     expect(terminal.getSessionState().shellType).toBe('bash');
     
     // Restore original

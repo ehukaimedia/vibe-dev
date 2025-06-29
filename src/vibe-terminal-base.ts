@@ -25,7 +25,7 @@ export abstract class VibeTerminalBase {
     this.startTime = new Date();
     this.currentWorkingDirectory = config.cwd || process.cwd();
     this.promptTimeout = config.promptTimeout || 5000; // Default 5 second timeout
-    this.disableOutputCleaning = process.env.NODE_ENV === 'test';
+    this.disableOutputCleaning = false; // Disabled - test mode cleaning is too aggressive
     
     // Determine shell
     const defaultShell = config.shell || this.getDefaultShell();

@@ -8,14 +8,8 @@ import {
   SessionState 
 } from './types.js';
 
-// For backward compatibility, VibeTerminal extends the appropriate platform implementation
-export class VibeTerminal extends VibeTerminalMac {
-  constructor(config?: TerminalConfig) {
-    // On non-Mac platforms, this would need to be different
-    // But for now on Mac, we just use the Mac implementation
-    super(config);
-  }
-}
+// VibeTerminal is now a type union of the platform-specific implementations
+export type VibeTerminal = VibeTerminalMac | VibeTerminalPC;
 
 // Also export the factory function for those who want to use it directly
 export function createVibeTerminal(config?: TerminalConfig): VibeTerminal {
@@ -23,9 +17,9 @@ export function createVibeTerminal(config?: TerminalConfig): VibeTerminal {
   
   switch (platform) {
     case Platform.WINDOWS:
-      return new VibeTerminalPC(config) as any;
+      return new VibeTerminalPC(config);
     case Platform.MAC:
-      return new VibeTerminalMac(config) as any;
+      return new VibeTerminalMac(config);
     default:
       // This should never happen as detectPlatform() throws for unsupported platforms
       throw new Error(`Unexpected platform: ${platform}`);

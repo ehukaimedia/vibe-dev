@@ -1,6 +1,6 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { platform } from 'os';
-import { VibeTerminal } from '../../src/vibe-terminal.js';
+import { VibeTerminal, createVibeTerminal } from '../../src/vibe-terminal.js';
 
 describe('VibeTerminal Coverage Tests', () => {
   let terminal: VibeTerminal;
@@ -13,7 +13,7 @@ describe('VibeTerminal Coverage Tests', () => {
 
   describe('Shell type detection', () => {
     it('should detect correct shell type for platform', () => {
-      terminal = new VibeTerminal();
+      terminal = createVibeTerminal();
       const state = terminal.getSessionState();
       
       if (process.platform === 'darwin') {
@@ -26,25 +26,25 @@ describe('VibeTerminal Coverage Tests', () => {
     });
 
     it('should detect zsh shell', () => {
-      terminal = new VibeTerminal({ shell: '/bin/zsh' });
+      terminal = createVibeTerminal({ shell: '/bin/zsh' });
       const state = terminal.getSessionState();
       expect(state.shellType).toBe('zsh');
     });
 
     it('should detect fish shell', () => {
-      terminal = new VibeTerminal({ shell: '/usr/local/bin/fish' });
+      terminal = createVibeTerminal({ shell: '/usr/local/bin/fish' });
       const state = terminal.getSessionState();
       expect(state.shellType).toBe('fish');
     });
 
     it('should detect sh shell', () => {
-      terminal = new VibeTerminal({ shell: '/bin/sh' });
+      terminal = createVibeTerminal({ shell: '/bin/sh' });
       const state = terminal.getSessionState();
       expect(state.shellType).toBe('sh');
     });
 
     it('should return unknown for unrecognized shell', () => {
-      terminal = new VibeTerminal({ shell: '/usr/bin/exotic-shell' });
+      terminal = createVibeTerminal({ shell: '/usr/bin/exotic-shell' });
       const state = terminal.getSessionState();
       expect(state.shellType).toBe('unknown');
     });
@@ -52,7 +52,7 @@ describe('VibeTerminal Coverage Tests', () => {
 
   describe('Concurrent command execution', () => {
     it('should throw error when executing concurrent commands', async () => {
-      terminal = new VibeTerminal();
+      terminal = createVibeTerminal();
       
       // Start first command
       const firstCommand = terminal.execute('sleep 0.5');
@@ -67,7 +67,7 @@ describe('VibeTerminal Coverage Tests', () => {
 
   describe('Working directory parsing', () => {
     it('should parse PWD output and update working directory', async () => {
-      terminal = new VibeTerminal();
+      terminal = createVibeTerminal();
       
       // Get initial directory
       const initialState = terminal.getSessionState();
@@ -89,7 +89,7 @@ describe('VibeTerminal Coverage Tests', () => {
   describe('Prompt detection patterns', () => {
     it('should handle commands correctly for different shells', async () => {
       // Test with default shell
-      terminal = new VibeTerminal();
+      terminal = createVibeTerminal();
       
       const result = await terminal.execute('echo test');
       // The output might contain prompt info on the first line
@@ -102,7 +102,7 @@ describe('VibeTerminal Coverage Tests', () => {
 
   describe('Output cleaning', () => {
     it('should return clean output without prompts', async () => {
-      terminal = new VibeTerminal();
+      terminal = createVibeTerminal();
       
       const result = await terminal.execute('echo "Hello World"');
       const cleanedOutput = result.output.trim();
@@ -120,7 +120,7 @@ describe('VibeTerminal Coverage Tests', () => {
     });
 
     it('should handle multiple commands with clean output', async () => {
-      terminal = new VibeTerminal();
+      terminal = createVibeTerminal();
       
       const firstResult = await terminal.execute('echo first');
       const firstLines = firstResult.output.trim().split('\n');
@@ -135,7 +135,7 @@ describe('VibeTerminal Coverage Tests', () => {
     });
 
     it('should handle command with no output', async () => {
-      terminal = new VibeTerminal();
+      terminal = createVibeTerminal();
       
       const result = await terminal.execute('true');
       expect(result.output.trim()).toBe('');
@@ -145,14 +145,14 @@ describe('VibeTerminal Coverage Tests', () => {
 
   describe('Exit code detection', () => {
     it('should detect successful command exit code', async () => {
-      terminal = new VibeTerminal();
+      terminal = createVibeTerminal();
       
       const result = await terminal.execute('true');
       expect(result.exitCode).toBe(0);
     });
 
     it('should detect error in output', async () => {
-      terminal = new VibeTerminal();
+      terminal = createVibeTerminal();
       
       const result = await terminal.execute('ls /nonexistent-directory-that-does-not-exist');
       expect(result.exitCode).toBe(1);
@@ -161,7 +161,7 @@ describe('VibeTerminal Coverage Tests', () => {
 
   describe('Error conditions', () => {
     it('should handle PTY not available', () => {
-      terminal = new VibeTerminal();
+      terminal = createVibeTerminal();
       // Force pty to be null
       (terminal as any).pty = null;
       
@@ -169,7 +169,7 @@ describe('VibeTerminal Coverage Tests', () => {
     });
 
     it('should handle timeout with proper cleanup', async () => {
-      terminal = new VibeTerminal({ promptTimeout: 100 });
+      terminal = createVibeTerminal({ promptTimeout: 100 });
       
       // Use a command that will hang
       const result = await terminal.execute('sleep 5');

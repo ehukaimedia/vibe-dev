@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { VibeTerminal } from '../../src/vibe-terminal.js';
+import { VibeTerminal, createVibeTerminal } from '../../src/vibe-terminal.js';
 import { platform } from 'os';
 
 const isWindows = platform() === 'win32';
@@ -8,7 +8,7 @@ console.log('Testing GitHub CLI Integration with Vibe Terminal...\n');
 
 // Helper function to execute commands with a fresh terminal
 async function executeGhCommand(command: string): Promise<any> {
-  const terminal = new VibeTerminal({
+  const terminal = createVibeTerminal({
     cwd: process.cwd(),
     promptTimeout: 10000, // 10 second timeout for gh commands
     env: {

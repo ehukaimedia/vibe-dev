@@ -1,11 +1,11 @@
-import { VibeTerminal } from '../../src/vibe-terminal.js';
+import { VibeTerminal, createVibeTerminal } from '../../src/vibe-terminal.js';
 import { VibeTerminalBase } from '../../src/vibe-terminal-base.js';
 
 describe('VibeTerminalBase', () => {
   let terminal: VibeTerminal;
   
   beforeEach(() => {
-    terminal = new VibeTerminal({ promptTimeout: 2000 });
+    terminal = createVibeTerminal({ promptTimeout: 2000 });
   });
   
   afterEach(async () => {

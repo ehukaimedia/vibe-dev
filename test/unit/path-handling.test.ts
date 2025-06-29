@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { VibeTerminal } from '../../src/vibe-terminal.js';
+import { VibeTerminal, createVibeTerminal } from '../../src/vibe-terminal.js';
 
 describe('Unix Path Handling', () => {
   let terminal: VibeTerminal;
   
   beforeEach(() => {
-    terminal = new VibeTerminal();
+    terminal = createVibeTerminal();
   });
   
   afterEach(() => {

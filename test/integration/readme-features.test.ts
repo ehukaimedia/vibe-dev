@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { VibeTerminal } from '../../src/vibe-terminal.js';
+import { VibeTerminal, createVibeTerminal } from '../../src/vibe-terminal.js';
 import { generateRecap } from '../../src/vibe-recap.js';
 
 describe('README Feature Verification', () => {
   let terminal: VibeTerminal;
 
   beforeEach(() => {
-    terminal = new VibeTerminal();
+    terminal = createVibeTerminal();
   });
 
   afterEach(() => {

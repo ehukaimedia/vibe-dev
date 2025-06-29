@@ -20,6 +20,11 @@ let workingDirectory = '/mock/directory';
 
 class MockVibeTerminal {
   private sessionId = Math.random().toString(36).substr(2, 9);
+  public pty: any = mockPtyAdapter;
+  
+  constructor(config?: any) {
+    // Mock constructor - config is ignored in this mock
+  }
   
   getSessionState() {
     return {
@@ -87,11 +92,11 @@ await jest.unstable_mockModule('../../src/vibe-terminal.js', () => ({
 }));
 
 // Import after mocking
-const { VibeTerminal } = await import('../../src/vibe-terminal.js');
+// We don't need to import VibeTerminal since we're using MockVibeTerminal
 import type { TerminalResult } from '../../src/types.js';
 
 describe('VibeTerminal', () => {
-  let terminal: InstanceType<typeof VibeTerminal>;
+  let terminal: MockVibeTerminal;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -99,7 +104,7 @@ describe('VibeTerminal', () => {
     commandHistory.length = 0;
     envVars.clear();
     workingDirectory = '/mock/directory';
-    terminal = new VibeTerminal();
+    terminal = new MockVibeTerminal();
   });
 
   afterEach(() => {
@@ -129,7 +134,7 @@ describe('VibeTerminal', () => {
   });
 
   it('should handle command timeout', async () => {
-    const timeoutTerminal = new VibeTerminal({ promptTimeout: 100 });
+    const timeoutTerminal = new MockVibeTerminal({ promptTimeout: 100 });
     const result = await timeoutTerminal.execute('sleep 10');
     expect(result.exitCode).toBe(-1);
     expect(result.output).toContain('Command timed out');
