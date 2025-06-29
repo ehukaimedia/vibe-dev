@@ -1,8 +1,12 @@
 // Test Windows Terminal Spawn Directly
 // This bypasses the MCP server layer to test if PowerShell can be spawned
 
-const { spawn } = require('child_process');
-const path = require('path');
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 console.log('Testing PowerShell spawn directly...\n');
 
@@ -23,13 +27,14 @@ ps.on('error', (err) => {
   console.error('PowerShell spawn error:', err);
 });
 
-ps.on('exit', (code) => {
+ps.on('exit', async (code) => {
   console.log('PowerShell exited with code:', code);
   
   // Test 2: Try loading the terminal class directly
   console.log('\nTest 2: Loading VibeTerminalPC class...');
   try {
-    const { VibeTerminalPC } = require(path.join(__dirname, '..', '..', '..', 'dist', 'src', 'vibe-terminal-pc.js'));
+    const terminalPath = join(__dirname, '..', '..', '..', 'dist', 'src', 'vibe-terminal-pc.js');
+    const { VibeTerminalPC } = await import(terminalPath);
     console.log('VibeTerminalPC loaded successfully');
     
     const terminal = new VibeTerminalPC();
