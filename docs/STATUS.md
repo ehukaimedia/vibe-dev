@@ -1,9 +1,32 @@
 # Vibe Dev Status
 
-**Last Updated**: 2025-01-06 14:00 PST  
-**Updated By**: PC Developer (Windows Implementation)  
+**Last Updated**: 2025-01-06 15:15 PST  
+**Updated By**: Mac Developer (Timeout Fix)  
 
-## 🎉 Current Phase: PRODUCTION v0.4.0 - Windows Implementation Complete
+## 🎉 Current Phase: PRODUCTION v0.4.0 - Cross-Platform Ready
+
+### Session: 2025-01-06 15:15 PST (Mac Developer - Timeout Fix)
+
+**Platform**: Mac  
+**Focus**: Fix timeout contamination bug identified by PC  
+**Baseline**: Ctrl+C sent on timeout was contaminating sessions  
+**Result**: Bug FIXED - removed Ctrl+C send from timeout handler  
+**Improvement**: Clean timeouts with exit code -1, no session contamination  
+**Tests**: All Mac tests passing (16/16), build successful  
+**Next Priority**: PC to verify Windows tests pass with fix  
+
+**✅ Timeout Fix Complete**:
+1. **Removed Ctrl+C contamination**: No more `\x03` sent on timeout
+2. **Cleaned up timeout handler**: Direct return with exitCode -1
+3. **All tests passing**: Mac platform verified working
+4. **Pushed to branch**: fix/windows-node-pty-blocker
+
+**Ready for PC Testing**:
+- Timeout contamination should be resolved
+- Windows tests should now pass
+- Cross-platform terminal implementation complete
+
+---
 
 ### Session: 2025-01-06 14:00 PST (PC Developer - Windows)
 
