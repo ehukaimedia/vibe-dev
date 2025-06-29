@@ -40,7 +40,7 @@ let terminalInstance: VibeTerminal | null = null;
 
 export function getTerminal(): VibeTerminal {
   if (!terminalInstance) {
-    terminalInstance = new VibeTerminal();
+    terminalInstance = createVibeTerminal();
   }
   return terminalInstance;
 }
