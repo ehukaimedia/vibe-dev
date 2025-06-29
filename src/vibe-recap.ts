@@ -129,8 +129,8 @@ function generateStatusRecap(sessionState: SessionState, history: CommandRecord[
     .filter(cmd => cmd.exitCode !== 0)
     .slice(-3);
   
+  output += `⚠️ Recent Errors:\n`;
   if (recentErrors.length > 0) {
-    output += `⚠️ Recent Errors:\n`;
     recentErrors.forEach(cmd => {
       output += `• ${cmd.command}\n`;
       const errorLine = cmd.output.split('\n').find(line => 
@@ -142,8 +142,10 @@ function generateStatusRecap(sessionState: SessionState, history: CommandRecord[
         output += `  → ${errorLine.trim()}\n`;
       }
     });
-    output += `\n`;
+  } else {
+    output += `• No errors in recent history\n`;
   }
+  output += `\n`;
   
   // Last successful command
   const lastSuccess = history
@@ -290,11 +292,15 @@ function generateNextSteps(history: CommandRecord[], sessionState: SessionState)
   
   // If last command failed, suggest fix
   if (lastCommand && lastCommand.exitCode !== 0) {
-    if (lastCommand.output.toLowerCase().includes('command not found')) {
+    const lowerOutput = lastCommand.output.toLowerCase();
+    const lowerCommand = lastCommand.command.toLowerCase();
+    
+    if (lowerOutput.includes('command not found') || 
+        lowerOutput.includes('not found') && !lowerOutput.includes('file')) {
       suggestions.push('Install missing command or check PATH');
-    } else if (lastCommand.output.toLowerCase().includes('permission denied')) {
+    } else if (lowerOutput.includes('permission denied')) {
       suggestions.push('Check file permissions or use sudo if appropriate');
-    } else if (lastCommand.output.toLowerCase().includes('no such file')) {
+    } else if (lowerOutput.includes('no such file') || lowerOutput.includes('cannot find')) {
       suggestions.push('Verify file path and working directory');
     } else {
       suggestions.push('Debug the previous error before continuing');
