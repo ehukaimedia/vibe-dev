@@ -1,9 +1,27 @@
 # Vibe Dev Status
 
-**Last Updated**: 2025-01-05 (Current Session)  
-**Updated By**: Claude Code (Command Echo Fix & Linux Removal)  
+**Last Updated**: 2025-01-05 12:35 PST  
+**Updated By**: Claude Desktop (Final Verification & Release)  
 
-## 🎉 Current Phase: PRODUCTION READY - Command Echo Bug FIXED & Linux Removed
+## 🎉 Current Phase: PRODUCTION v0.4.0 - Command Echo Fixed, Mac/PC Only
+
+### Session: 2025-01-05 12:35 PST (Claude Desktop - Release)
+
+**Platform**: Mac  
+**Focus**: Verify fixes, align documentation, create release  
+**Baseline**: Command echo fixed by Claude Code, needed verification  
+**Result**: All fixes verified, documentation aligned, v0.4.0 released  
+**Improvement**: Clean output, pure Mac/PC support, consistent docs  
+**Tests**: Manual testing confirms bug fixed, CI/CD updated  
+**Next Priority**: PC developer can implement Windows version  
+
+**✅ Release v0.4.0 Completed**:
+1. **Command Echo Bug**: Verified FIXED - clean output
+2. **Linux Removed**: Code and CI/CD now Mac/PC only
+3. **Documentation**: All files aligned with Mac/PC scope
+4. **Release Tagged**: v0.4.0 pushed to GitHub
+
+---
 
 ### Session: 2025-01-05 (Claude Code - Critical Fixes)
 
@@ -13,11 +31,7 @@
 **Result**: Bug FIXED, Linux support REMOVED, all tests passing  
 **Improvement**: Clean command output, Mac/PC only platform support  
 **Tests**: Command echo tests 3/3 passing (100%), Regression tests 4/4 passing  
-**Next Priority**: Manual testing in Claude Desktop, then PC implementation  
-
-**✅ Critical Fixes Completed**:
-1. **Command Echo Bug FIXED**:
-   - Identified pattern: `p\bpwd` causing "ppwd" output
+**Next Priority**: Manual testing in Claude Desktop, then PC implementation
    - Fixed by removing `firstChar\bcommand` pattern in cleanOutput
    - Enhanced filtering to remove command echoes and prompt lines
    - All command echo tests now passing
