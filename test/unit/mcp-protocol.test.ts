@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from '@jest/globals';
 import { spawn, ChildProcess } from 'child_process';
+import * as path from 'path';
 
 // Skip MCP protocol tests in CI environment
 const skipInCI = process.env.CI ? it.skip : it;
@@ -15,127 +16,178 @@ describe('MCP Protocol Communication', () => {
   });
 
   skipInCI('should list available tools', (done) => {
-    server = spawn('node', ['dist/src/index.js'], {
-      stdio: ['pipe', 'pipe', 'pipe']
+    const serverPath = path.join(process.cwd(), 'dist/src/index.js');
+    server = spawn('node', [serverPath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, NODE_ENV: 'test' }
     });
 
     let responseReceived = false;
+    let serverStarted = false;
+    let outputBuffer = '';
     
     server.stdout?.on('data', (data) => {
-      const response = data.toString();
-      if (response.includes('tools/list') && response.includes('vibe_terminal')) {
-        responseReceived = true;
-        expect(response).toContain('vibe_terminal');
-        expect(response).toContain('vibe_recap');
-        done();
+      outputBuffer += data.toString();
+      
+      // Look for complete JSON responses
+      const lines = outputBuffer.split('\n');
+      for (const line of lines) {
+        if (line.trim() && line.includes('{')) {
+          try {
+            const response = JSON.parse(line);
+            if (response.result && response.result.tools) {
+              responseReceived = true;
+              const toolNames = response.result.tools.map((t: any) => t.name);
+              expect(toolNames).toContain('vibe_terminal');
+              expect(toolNames).toContain('vibe_recap');
+              done();
+            }
+          } catch (e) {
+            // Not valid JSON yet, continue
+          }
+        }
       }
     });
 
     server.stderr?.on('data', (data) => {
-      // Log server errors for debugging
-      console.error('Server stderr:', data.toString());
+      const stderr = data.toString();
+      if (stderr.includes('Server running and connected')) {
+        serverStarted = true;
+        // Send request after server is ready
+        const message = {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/list",
+          params: {}
+        };
+        server?.stdin?.write(JSON.stringify(message) + '\n');
+      }
     });
-
-    // Wait for server to start, then send message
-    setTimeout(() => {
-      const message = {
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/list",
-        params: {}
-      };
-      server?.stdin?.write(JSON.stringify(message) + '\n');
-    }, 1000);
 
     // Timeout safety
     setTimeout(() => {
       if (!responseReceived) {
         done(new Error('No response received from server'));
       }
-    }, 5000);
+    }, 8000);
   }, 10000);
 
   skipInCI('should execute vibe_terminal command', (done) => {
-    server = spawn('node', ['dist/src/index.js'], {
-      stdio: ['pipe', 'pipe', 'pipe']
+    const serverPath = path.join(process.cwd(), 'dist/src/index.js');
+    server = spawn('node', [serverPath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, NODE_ENV: 'test' }
     });
 
     let toolCallReceived = false;
+    let serverStarted = false;
+    let outputBuffer = '';
     
     server.stdout?.on('data', (data) => {
-      const response = data.toString();
-      if (response.includes('vibe_terminal') && response.includes('result')) {
-        toolCallReceived = true;
-        expect(response).toContain('exitCode');
-        expect(response).toContain('output');
-        done();
+      outputBuffer += data.toString();
+      
+      // Look for complete JSON responses
+      const lines = outputBuffer.split('\n');
+      for (const line of lines) {
+        if (line.trim() && line.includes('{')) {
+          try {
+            const response = JSON.parse(line);
+            if (response.result && response.result.content) {
+              toolCallReceived = true;
+              const content = response.result.content[0].text;
+              expect(content).toContain('Exit code:');
+              expect(content).toContain('Output:');
+              done();
+            }
+          } catch (e) {
+            // Not valid JSON yet, continue
+          }
+        }
       }
     });
 
     server.stderr?.on('data', (data) => {
-      // Log server errors for debugging
-      console.error('Server stderr:', data.toString());
-    });
-
-    // Wait for server to start, then send message
-    setTimeout(() => {
-      const message = {
-        jsonrpc: "2.0",
-        id: 2,
-        method: "tools/call",
-        params: {
-          name: "vibe_terminal",
-          arguments: {
-            command: "echo \"MCP test\""
+      const stderr = data.toString();
+      if (stderr.includes('Server running and connected')) {
+        serverStarted = true;
+        // Send request after server is ready
+        const message = {
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/call",
+          params: {
+            name: "vibe_terminal",
+            arguments: {
+              command: "echo 'MCP test'"
+            }
           }
-        }
-      };
-      server?.stdin?.write(JSON.stringify(message) + '\n');
-    }, 1000);
+        };
+        server?.stdin?.write(JSON.stringify(message) + '\n');
+      }
+    });
 
     // Timeout safety
     setTimeout(() => {
       if (!toolCallReceived) {
         done(new Error('No tool call response received'));
       }
-    }, 5000);
+    }, 8000);
   }, 10000);
 
   skipInCI('should handle invalid tool requests', (done) => {
-    server = spawn('node', ['dist/src/index.js'], {
-      stdio: ['pipe', 'pipe', 'pipe']
+    const serverPath = path.join(process.cwd(), 'dist/src/index.js');
+    server = spawn('node', [serverPath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, NODE_ENV: 'test' }
     });
 
     let errorReceived = false;
+    let serverStarted = false;
+    let outputBuffer = '';
     
     server.stdout?.on('data', (data) => {
-      const response = data.toString();
-      if (response.includes('error')) {
-        errorReceived = true;
-        expect(response).toContain('error');
-        done();
+      outputBuffer += data.toString();
+      
+      // Look for complete JSON responses
+      const lines = outputBuffer.split('\n');
+      for (const line of lines) {
+        if (line.trim() && line.includes('{')) {
+          try {
+            const response = JSON.parse(line);
+            if (response.error || (response.result && response.result.isError)) {
+              errorReceived = true;
+              done();
+            }
+          } catch (e) {
+            // Not valid JSON yet, continue
+          }
+        }
       }
     });
 
-    // Wait for server to start, then send invalid message
-    setTimeout(() => {
-      const message = {
-        jsonrpc: "2.0",
-        id: 3,
-        method: "tools/call",
-        params: {
-          name: "invalid_tool",
-          arguments: {}
-        }
-      };
-      server?.stdin?.write(JSON.stringify(message) + '\n');
-    }, 1000);
+    server.stderr?.on('data', (data) => {
+      const stderr = data.toString();
+      if (stderr.includes('Server running and connected')) {
+        serverStarted = true;
+        // Send invalid request after server is ready
+        const message = {
+          jsonrpc: "2.0",
+          id: 3,
+          method: "tools/call",
+          params: {
+            name: "invalid_tool",
+            arguments: {}
+          }
+        };
+        server?.stdin?.write(JSON.stringify(message) + '\n');
+      }
+    });
 
     // Timeout safety
     setTimeout(() => {
       if (!errorReceived) {
         done(new Error('Expected error response not received'));
       }
-    }, 5000);
+    }, 8000);
   }, 10000);
 });

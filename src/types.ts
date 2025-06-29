@@ -42,7 +42,7 @@ export interface SessionState {
   environmentVariables: Record<string, string>;
   commandHistory: CommandRecord[];
   currentPrompt: string;
-  shellType: 'bash' | 'zsh' | 'fish' | 'sh' | 'unknown';
+  shellType: 'bash' | 'zsh' | 'fish' | 'sh' | 'powershell' | 'unknown';
 }
 
 // MCP response format

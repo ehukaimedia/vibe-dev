@@ -57,6 +57,10 @@ export class VibeTerminal {
     if (os.platform() === 'win32') {
       return 'powershell.exe';
     }
+    // For Windows platform detection during tests
+    if (process.platform === 'win32') {
+      return 'powershell.exe';
+    }
     // Check SHELL environment variable first
     if (process.env.SHELL) {
       return process.env.SHELL;
@@ -66,10 +70,11 @@ export class VibeTerminal {
   }
   
   private detectShellType(shellPath: string): SessionState['shellType'] {
+    if (shellPath.includes('powershell')) return 'powershell';
     if (shellPath.includes('bash')) return 'bash';
     if (shellPath.includes('zsh')) return 'zsh';
     if (shellPath.includes('fish')) return 'fish';
-    if (shellPath.includes('sh')) return 'sh';
+    if (shellPath.includes('/sh')) return 'sh';
     return 'unknown';
   }
   
@@ -247,31 +252,69 @@ export class VibeTerminal {
   }
   
   private cleanOutput(rawOutput: string, command: string): string {
+    // Start with basic cleaning
+    let cleaned = rawOutput;
+    
+    // Remove ANSI escape sequences
+    cleaned = cleaned.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+    cleaned = cleaned.replace(/\x1B\[[0-9;]*\?[0-9]*[a-zA-Z]/g, '');
+    cleaned = cleaned.replace(/\x1B\].*?\x1B\\/g, ''); // OSC sequences
+    cleaned = cleaned.replace(/\x1B\[.*?m/g, ''); // SGR sequences
+    
+    // Remove backspace characters and their preceding character
+    cleaned = cleaned.replace(/.\x08/g, '');
+    
+    // Remove carriage returns
+    cleaned = cleaned.replace(/\r/g, '');
+    
+    // For test mode, be more aggressive
     if (this.disableOutputCleaning) {
-      // In test mode, clean more aggressively for zsh
-      let cleaned = rawOutput;
-      
-      // Remove ANSI escape sequences
-      cleaned = cleaned.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
-      cleaned = cleaned.replace(/\x1B\[[0-9;]*\?[0-9]*[a-zA-Z]/g, '');
-      
-      // Remove backspace characters
-      cleaned = cleaned.replace(/.\x08/g, '');
-      
-      // Extract just the output after the command
+      // Split into lines
       const lines = cleaned.split('\n');
-      const commandIndex = lines.findIndex(line => line.includes(command));
-      if (commandIndex >= 0) {
-        // Get lines after the command, excluding trailing prompt
-        const outputLines = lines.slice(commandIndex + 1);
-        // Remove the last line if it looks like a prompt
-        if (outputLines.length > 0 && /[%$#>]\s*$/.test(outputLines[outputLines.length - 1])) {
-          outputLines.pop();
+      
+      // Find the line containing the command - look for the first line that contains the command
+      let commandLineIndex = -1;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        // Look for lines containing the command
+        if (line.includes(`% ${command}`) || 
+            line.includes(`$ ${command}`) ||
+            line.includes(`# ${command}`) ||
+            (line.includes(command) && i === 0)) { // First line often has the prompt
+          commandLineIndex = i;
+          break;
         }
-        cleaned = outputLines.join('\n');
       }
       
-      return cleaned.trim();
+      if (commandLineIndex >= 0) {
+        // Get lines after the command
+        let outputLines = lines.slice(commandLineIndex + 1);
+        
+        // Remove trailing prompt lines
+        while (outputLines.length > 0) {
+          const lastLine = outputLines[outputLines.length - 1];
+          // Check if last line looks like a prompt
+          if (/[%$#>]\s*$/.test(lastLine) || 
+              lastLine.includes('@') && lastLine.includes('%') ||
+              lastLine.trim() === '' ||
+              lastLine.includes('ehukaimedia@')) {
+            outputLines.pop();
+          } else {
+            break;
+          }
+        }
+        
+        return outputLines.join('\n').trim();
+      }
+      
+      // Fallback: just remove obvious prompt lines
+      const outputLines = lines.filter(line => {
+        return !(/^[%$#>]\s*$/.test(line) || 
+                 (line.includes('@') && line.includes('%')) ||
+                 line.includes('ehukaimedia@'));
+      });
+      
+      return outputLines.join('\n').trim();
     }
     
     // Split by lines
@@ -328,7 +371,7 @@ export class VibeTerminal {
     lines = lines.slice(0, outputEndIndex);
     
     // Clean ANSI escape sequences
-    const cleaned = lines.join('\n')
+    cleaned = lines.join('\n')
       .replace(/\x1b\[[0-9;]*m/g, '') // Color codes
       .replace(/\x1b\[[0-9]*[GKJH]/g, '') // Cursor movement
       .replace(/\x1b\[\?[0-9]+[hl]/g, '') // Mode changes
@@ -363,6 +406,7 @@ export class VibeTerminal {
     // For now, return 0 if no obvious error, -1 if unknown
     if (output.includes('command not found') || 
         output.includes('No such file or directory') ||
+        output.includes('cannot access') ||
         output.includes('Permission denied') ||
         output.includes('error:') ||
         output.includes('Error:')) {

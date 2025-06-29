@@ -1,10 +1,21 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
+import { readFileSync } from 'fs';
 
-// Mock the modules
-jest.mock('@modelcontextprotocol/sdk/server/stdio.js');
-jest.mock('../../src/server.js');
+// Mock the modules using unstable_mockModule for ES modules
+const StdioServerTransport = jest.fn();
+await jest.unstable_mockModule('@modelcontextprotocol/sdk/server/stdio.js', () => ({
+  StdioServerTransport
+}));
+await jest.unstable_mockModule('../../src/server.js', () => ({
+  server: {
+    connect: jest.fn()
+  }
+}));
+
+// Import modules after mocking
+const { server } = await import('../../src/server.js');
 
 describe('Vibe Dev Index Entry Point', () => {
   let mockProcess: any;
@@ -50,7 +61,7 @@ describe('Vibe Dev Index Entry Point', () => {
     const { server } = await import('../../src/server.js') as any;
     
     mockTransport = { connect: jest.fn() };
-    StdioServerTransport.mockImplementation(() => mockTransport);
+    (StdioServerTransport as jest.Mock).mockImplementation(() => mockTransport);
     
     mockServer = { connect: jest.fn(() => Promise.resolve()) };
     server.connect = mockServer.connect;
@@ -74,7 +85,7 @@ describe('Vibe Dev Index Entry Point', () => {
     const { server } = await import('../../src/server.js') as any;
     
     mockTransport = { connect: jest.fn() };
-    StdioServerTransport.mockImplementation(() => mockTransport);
+    (StdioServerTransport as jest.Mock).mockImplementation(() => mockTransport);
     
     mockServer = { connect: jest.fn(() => Promise.resolve()) };
     server.connect = mockServer.connect;
@@ -99,7 +110,7 @@ describe('Vibe Dev Index Entry Point', () => {
     const { server } = await import('../../src/server.js') as any;
     
     mockTransport = { connect: jest.fn() };
-    StdioServerTransport.mockImplementation(() => mockTransport);
+    (StdioServerTransport as jest.Mock).mockImplementation(() => mockTransport);
     
     mockServer = { connect: jest.fn(() => Promise.resolve()) };
     server.connect = mockServer.connect;
@@ -122,7 +133,7 @@ describe('Vibe Dev Index Entry Point', () => {
     const { server } = await import('../../src/server.js') as any;
     
     mockTransport = { connect: jest.fn() };
-    StdioServerTransport.mockImplementation(() => mockTransport);
+    (StdioServerTransport as jest.Mock).mockImplementation(() => mockTransport);
     
     const connectionError = new Error('Connection failed');
     mockServer = { connect: jest.fn(() => Promise.reject(connectionError)) };
@@ -162,8 +173,7 @@ describe('Vibe Dev Index Entry Point', () => {
 describe('Vibe Dev CLI Integration', () => {
   it('should be executable as a CLI script', () => {
     const indexPath = '/Users/ehukaimedia/Desktop/AI-Applications/Node/vibe-dev/src/index.ts';
-    const fs = require('fs');
-    const content = fs.readFileSync(indexPath, 'utf8');
+    const content = readFileSync(indexPath, 'utf8');
     
     // Check shebang
     expect(content.startsWith('#!/usr/bin/env node')).toBe(true);

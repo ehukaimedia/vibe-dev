@@ -1,13 +1,18 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { generateRecap } from '../../src/vibe-recap.js';
-import { getTerminal } from '../../src/vibe-terminal.js';
 import { CommandRecord, SessionState } from '../../src/types.js';
 
-// Mock the terminal module
-jest.mock('../../src/vibe-terminal');
+// Create manual mocks
+const mockGetTerminal = jest.fn();
+
+// Mock the terminal module using unstable_mockModule for ES modules
+await jest.unstable_mockModule('../../src/vibe-terminal.js', () => ({
+  getTerminal: mockGetTerminal
+}));
+
+// Import after mocking
+const { generateRecap } = await import('../../src/vibe-recap.js');
 
 describe('Recap Generation', () => {
-  const mockGetTerminal = getTerminal as jest.MockedFunction<typeof getTerminal>;
   
   beforeEach(() => {
     jest.clearAllMocks();

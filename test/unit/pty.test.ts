@@ -70,7 +70,7 @@ describe('node-pty functionality', () => {
     terminal.onData((data) => {
       output += data;
       
-      if (!changedDir && output.includes('$') || output.includes('#')) {
+      if (!changedDir && (output.includes('$') || output.includes('#') || output.includes('%'))) {
         changedDir = true;
         terminal!.write('cd /tmp\r');
         setTimeout(() => {
@@ -102,7 +102,7 @@ describe('node-pty functionality', () => {
     terminal.onData((data) => {
       output += data;
       
-      if (!setVar && (output.includes('$') || output.includes('#'))) {
+      if (!setVar && (output.includes('$') || output.includes('#') || output.includes('%'))) {
         setVar = true;
         terminal!.write('export TEST_VAR="PTY works!"\r');
         setTimeout(() => {

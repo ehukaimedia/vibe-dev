@@ -16,11 +16,15 @@ export function assertPerformance(
   duration: number, 
   tolerance: number = 1.1
 ): void {
-  const baseline = PERFORMANCE_BASELINES[operation];
-  if (!baseline) {
+  const parts = operation.split('.');
+  const category = parts[0] as keyof typeof PERFORMANCE_BASELINES;
+  const metric = parts[1];
+  
+  if (!PERFORMANCE_BASELINES[category] || !PERFORMANCE_BASELINES[category][metric as keyof typeof PERFORMANCE_BASELINES[typeof category]]) {
     throw new Error(`No baseline for operation: ${operation}`);
   }
   
+  const baseline = PERFORMANCE_BASELINES[category][metric as keyof typeof PERFORMANCE_BASELINES[typeof category]] as number;
   const maxAllowed = baseline * tolerance;
   if (duration > maxAllowed) {
     throw new Error(

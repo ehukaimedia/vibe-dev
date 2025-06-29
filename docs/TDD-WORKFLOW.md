@@ -7,438 +7,344 @@
 **For Claude Desktop**: Write tests that demonstrate issues
 **For Claude Code**: Write tests before implementing fixes
 
-## Cross-Platform TDD (NEW!)
+## Cross-Platform TDD with OS-Specific Tests
 
 ### PC as Test Writer, Mac as Implementer
 
 **The Perfect TDD Split**:
-- **Windows PC**: Writes failing tests that prove bugs exist
-- **Mac/Linux**: Implements code to make tests pass
+- **Windows PC**: Writes failing tests that prove bugs exist (including platform-specific bugs)
+- **Mac/Linux**: Implements code to make tests pass (including platform-specific implementations)
 
-### PC Workflow - Write the Test
-```bash
-# 1. Discover issue through testing
-vibe_terminal("npm test")
+### Test Organization (Updated for OS Split)
 
-# 2. Write a failing test that proves the bug
-desktop-commander:write_file path="test/unit/bug-proof.test.ts"
-
-# 3. Run test to confirm it fails
-vibe_terminal("npm test test/unit/bug-proof.test.ts")
-
-# 4. Create handoff explaining the issue
-desktop-commander:write_file path="docs/claude-handoffs/YYYY-MM-DD_test-and-issue.md"
-
-# 5. Push BOTH test and handoff (ALLOWED!)
-vibe_terminal("git add test/**/*.test.ts docs/claude-handoffs/*.md")
-vibe_terminal("git commit -m 'test: failing test for [issue]'")
-vibe_terminal("git push")  # Safe - only tests and handoffs
+```
+test/
+├── mac/                        # Mac-only tests (NEW!)
+│   └── vibe-terminal-mac.test.ts
+├── pc/                         # PC-only tests (NEW!)
+│   └── vibe-terminal-pc.test.ts
+├── unit/                       # Cross-platform tests
+│   ├── os-detector.test.ts     # Platform detection
+│   ├── vibe-terminal-base.test.ts # Common functionality
+│   ├── vibe-terminal.test.ts   # Factory tests
+│   ├── vibe-recap.test.ts      # Already cross-platform ✅
+│   └── session.test.ts         # Session management
+├── integration/
+│   ├── workflows.test.ts       # Real workflow tests
+│   └── recovery.test.ts        # Disconnect recovery
+├── performance/
+│   └── benchmarks.test.ts      # Speed requirements
+└── fixtures/
+    └── test-data.ts            # Shared test data
 ```
 
-### Mac Workflow - Make it Pass
+### PC Workflow - Write Platform-Specific Tests
+
+```bash
+# 1. Discover platform-specific issue
+vibe_terminal("npm test")
+
+# 2a. Write cross-platform test if bug affects all platforms
+desktop-commander:write_file path="test/unit/bug-proof.test.ts"
+
+# 2b. Write PC-specific test if bug is Windows-only
+desktop-commander:write_file path="test/pc/windows-bug.test.ts"
+
+# 3. Run test to confirm it fails
+vibe_terminal("npm test")  # Automatically runs PC tests on PC
+
+# 4. Create handoff explaining the issue
+desktop-commander:write_file path="docs/claude-handoffs/YYYY-MM-DD_platform-issue.md"
+
+# 5. Push tests and handoff
+vibe_terminal("git add test/**/*.test.ts docs/claude-handoffs/*.md")
+vibe_terminal("git commit -m 'test: failing test for [platform issue]'")
+vibe_terminal("git push")
+
+# 6. After Mac creates foundation, PC implements Windows version
+vibe_terminal("git pull")  # Get foundation from Mac
+desktop-commander:write_file path="src/vibe-terminal-pc.ts"
+vibe_terminal("npm test")  # Make tests pass
+
+# 7. PC can push their implementation!
+vibe_terminal("git add src/vibe-terminal-pc.ts test/pc/*.test.ts")
+vibe_terminal("git commit -m 'feat: Windows terminal implementation'")
+vibe_terminal("git push")  # ALLOWED for vibe-terminal-pc.ts!
+```
+
+### Mac Workflow - Implement Platform Solutions
+
 ```bash
 # 1. Pull tests and handoffs from PC
 git pull
 
-# 2. Run the new test - confirm it fails
-npm test test/unit/bug-proof.test.ts
+# 2. Run tests - see what fails
+npm test  # Automatically runs Mac tests on Mac
 
-# 3. Implement fix in src/
-# Edit production code to make test pass
+# 3. If cross-platform test fails, fix in base or factory
+# If Mac-specific test fails, fix in vibe-terminal-mac.ts
+# PC tests won't run on Mac - that's good!
 
-# 4. Run test again - confirm it passes
-npm test test/unit/bug-proof.test.ts
+# 4. Implement fix
+# Edit src/vibe-terminal-base.ts, vibe-terminal-mac.ts, etc.
 
-# 5. Run all tests - ensure no regression
+# 5. Run tests again - ensure they pass
 npm test
 
 # 6. Push implementation
 git add -A
-git commit -m "fix: [issue] - makes test pass"
+git commit -m "fix: [issue] for Mac platform"
 git push
 ```
 
 ### What PC Can Push
-- ✅ `test/**/*.test.ts` - All test files
+- ✅ `test/**/*.test.ts` - All test files (including test/pc/)
 - ✅ `test/**/*.spec.ts` - All spec files  
 - ✅ `docs/claude-handoffs/*.md` - Handoff documents
-- ❌ `src/*` - NEVER production code
+- ✅ `jest.config.js` - If updating test configuration
+- ✅ `package.json` - If adding test scripts
+- ✅ `src/vibe-terminal-pc.ts` - PC's platform implementation ONLY!
+- ❌ `src/*` (except vibe-terminal-pc.ts) - No other production code
 - ❌ `dist/*` - NEVER build output
 
-### Example Cross-Platform TDD Session
+## Platform-Specific Test Examples
 
-**On PC - Find and Prove Bug**:
+### Cross-Platform Test (test/unit/)
 ```typescript
-// test/unit/output-isolation.test.ts
-test('commands should return only their own output', async () => {
-  const result1 = await vibe_terminal('echo first');
-  const result2 = await vibe_terminal('echo second');
-  
-  // This will fail, proving the bug
-  expect(result2.output).toBe('second\n');
-  expect(result2.output).not.toContain('first');
+// test/unit/vibe-terminal-base.test.ts
+// Runs on ALL platforms
+describe('VibeTerminal Base Functionality', () => {
+  test('maintains session state', async () => {
+    const terminal = createVibeTerminal(); // Factory method
+    await terminal.execute('cd /tmp');
+    const result = await terminal.execute('pwd');
+    expect(result.output).toMatch(/tmp/);
+  });
 });
 ```
 
-**PC Handoff**:
-```markdown
-# Output Isolation Bug
-
-## Test Created
-`test/unit/output-isolation.test.ts`
-
-## What It Proves
-Commands are accumulating output instead of returning only their own.
-
-## Expected Behavior
-Each command should return only its output, not previous commands.
-
-## Run Test
-npm test test/unit/output-isolation.test.ts
-```
-
-**On Mac - Implementation**:
-Claude Code pulls, sees failing test, implements fix in `src/vibe-terminal.ts` to make it pass.
-
-## Test Environment Setup
-
-We have dedicated test environments:
-- `test-env/` - For test environment files
-- `test-venv/` - For Python virtual environment testing
-
-## The TDD Cycle
-
-### 1. Red: Write a Failing Test
+### PC-Specific Test (test/pc/)
 ```typescript
-// Start with the behavior you want
-test('vibe_terminal returns only its own output', async () => {
-  const result1 = await vibe_terminal('echo first');
-  const result2 = await vibe_terminal('echo second');
+// test/pc/vibe-terminal-pc.test.ts
+// ONLY runs on Windows - no skip needed!
+describe('PC Terminal Specific', () => {
+  test('handles PowerShell commands', async () => {
+    const terminal = new VibeTerminalPC();
+    const result = await terminal.execute('Get-Location');
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toMatch(/^PS/); // No prompt in output
+  });
   
-  // This should fail initially
-  expect(result2.output).toBe('second\n');
-  expect(result2.output).not.toContain('first');
+  test('fixes command echo bug', async () => {
+    const terminal = new VibeTerminalPC();
+    const result = await terminal.execute('echo test');
+    expect(result.output).toBe('test\r\n'); // Windows line ending
+    expect(result.output).not.toMatch(/^eecho/); // Bug fixed!
+  });
 });
 ```
 
-### 2. Green: Make It Pass (Minimal)
+### Mac-Specific Test (test/mac/)
 ```typescript
-// Simplest code that makes the test pass
-export async function vibe_terminal(command: string): Promise<TerminalResult> {
-  const result = await executeInPTY(command);
-  // Fix: Return only current command output
-  return {
-    output: result.currentOutput,  // Not accumulated
-    exitCode: result.exitCode,
-    duration: result.duration
-  };
+// test/mac/vibe-terminal-mac.test.ts
+// ONLY runs on Mac - no skip needed!
+describe('Mac Terminal Specific', () => {
+  test('handles zsh-specific features', async () => {
+    const terminal = new VibeTerminalMac();
+    await terminal.execute('setopt | grep -i prompt');
+    expect(terminal.shellType).toBe('zsh');
+  });
+  
+  test('handles Mac paths correctly', async () => {
+    const terminal = new VibeTerminalMac();
+    const result = await terminal.execute('echo ~');
+    expect(result.output).toMatch(/^\/Users\//);
+  });
+});
+```
+
+## Jest Configuration for Platform Tests
+
+```javascript
+// jest.config.js
+export default {
+  preset: 'ts-jest/presets/default-esm',
+  testEnvironment: 'node',
+  
+  // Dynamic test matching based on platform
+  testMatch: [
+    // Always run cross-platform tests
+    '<rootDir>/test/unit/**/*.test.ts',
+    '<rootDir>/test/integration/**/*.test.ts',
+    '<rootDir>/test/performance/**/*.test.ts',
+    
+    // Platform-specific tests based on current OS
+    ...(process.platform === 'darwin' ? ['<rootDir>/test/mac/**/*.test.ts'] : []),
+    ...(process.platform === 'win32' ? ['<rootDir>/test/pc/**/*.test.ts'] : []),
+    ...(process.platform === 'linux' ? ['<rootDir>/test/mac/**/*.test.ts'] : []), // Linux uses Mac tests
+  ],
+  
+  // Remove old ignore patterns - we use testMatch now
+  // testPathIgnorePatterns: [...] // REMOVED!
+  
+  // Other config remains the same
+  testTimeout: 30000,
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.test.ts',
+  ],
+};
+```
+
+## NPM Scripts for Platform Testing
+
+```json
+{
+  "scripts": {
+    "test": "jest",                           // Runs platform-appropriate tests
+    "test:all": "jest test/unit test/integration test/performance", // Cross-platform only
+    "test:mac": "jest test/mac test/unit",    // Mac + cross-platform
+    "test:pc": "jest test/pc test/unit",      // PC + cross-platform
+    "test:unit": "jest test/unit",            // Cross-platform unit tests
+    "test:integration": "jest test/integration",
+    "test:performance": "jest test/performance",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  }
+}
+```
+
+## The TDD Cycle for Platform-Specific Code
+
+### 1. Red: Write a Failing Platform Test
+```typescript
+// PC writes: test/pc/command-echo-bug.test.ts
+test('commands do not echo on Windows', async () => {
+  const terminal = new VibeTerminalPC();
+  const result = await terminal.execute('echo hello');
+  
+  // This will fail with current bug
+  expect(result.output).toBe('hello\r\n');
+  expect(result.output).not.toMatch(/^eecho/);
+});
+```
+
+### 2. Green: Make It Pass (Platform-Specific)
+```typescript
+// Mac implements: src/vibe-terminal-pc.ts
+export class VibeTerminalPC extends VibeTerminalBase {
+  protected cleanOutput(rawOutput: string): string {
+    // Fix for Windows command echo
+    return rawOutput.replace(/^[a-z]\x08/, ''); // Remove echo char
+  }
 }
 ```
 
 ### 3. Refactor: Make It Right
 ```typescript
-// Now make it clean and efficient
-export async function vibe_terminal(command: string): Promise<TerminalResult> {
-  const session = await sessionManager.getOrCreate();
-  const result = await session.execute(command);
+// Refactor with proper pattern
+export class VibeTerminalPC extends VibeTerminalBase {
+  private readonly ECHO_PATTERN = /^.\x08/; // Backspace character
   
-  // Track but don't accumulate
-  session.addToHistory({
-    command,
-    output: result.output,
-    exitCode: result.exitCode,
-    timestamp: new Date()
-  });
+  protected cleanOutput(rawOutput: string): string {
+    if (this.shellType === 'powershell') {
+      return this.cleanPowerShellOutput(rawOutput);
+    }
+    return rawOutput;
+  }
   
-  return result;
+  private cleanPowerShellOutput(output: string): string {
+    return output
+      .replace(this.ECHO_PATTERN, '')
+      .replace(/PS [C-Z]:\\[^>]*>/, ''); // Remove prompt
+  }
 }
 ```
 
-## Core Test Categories
+## Non-Regressive Evolution Safeguards
 
-### 1. Functionality Tests
+### 1. Platform Test Coverage Requirements
 ```typescript
-describe('Core vibe_terminal', () => {
-  test('executes basic commands', async () => {
-    const result = await vibe_terminal('echo "Hello Vibe"');
-    expect(result.output).toContain('Hello Vibe');
-    expect(result.exitCode).toBe(0);
+// Every platform-specific implementation MUST have:
+describe('[Platform] Terminal Implementation', () => {
+  // 1. Prove it extends base correctly
+  test('extends VibeTerminalBase', () => {
+    expect(VibeTerminalPC.prototype).toBeInstanceOf(VibeTerminalBase);
   });
-
-  test('handles command errors gracefully', async () => {
-    const result = await vibe_terminal('false');
-    expect(result.exitCode).toBe(1);
-    expect(result.error).toBeUndefined();
+  
+  // 2. Prove it maintains core functionality
+  test('maintains session state', async () => {
+    // Same test as base, proves no regression
   });
-
-  test('maintains session between commands', async () => {
-    await vibe_terminal('cd /tmp');
-    const result = await vibe_terminal('pwd');
-    expect(result.output.trim()).toBe('/tmp');
+  
+  // 3. Prove platform-specific fixes work
+  test('fixes platform-specific issues', async () => {
+    // Platform-specific behavior
   });
 });
 ```
 
-### 2. Performance Tests (Critical!)
+### 2. Factory Pattern Tests
 ```typescript
-describe('Performance Requirements', () => {
-  test('responds in under 1 second', async () => {
-    const start = Date.now();
-    await vibe_terminal('echo test');
-    const duration = Date.now() - start;
+// test/unit/vibe-terminal.test.ts
+describe('VibeTerminal Factory', () => {
+  test('returns correct implementation', () => {
+    const terminal = createVibeTerminal();
     
-    expect(duration).toBeLessThan(1000);
-    console.log(`Response time: ${duration}ms`);
-  });
-
-  test('handles rapid commands efficiently', async () => {
-    const times = [];
-    for (let i = 0; i < 10; i++) {
-      const start = Date.now();
-      await vibe_terminal(`echo test${i}`);
-      times.push(Date.now() - start);
+    if (process.platform === 'win32') {
+      expect(terminal).toBeInstanceOf(VibeTerminalPC);
+    } else {
+      expect(terminal).toBeInstanceOf(VibeTerminalMac);
     }
-    const avg = times.reduce((a, b) => a + b) / times.length;
-    expect(avg).toBeLessThan(200);
+  });
+  
+  test('maintains backward compatibility', async () => {
+    // Old API must still work
+    const result = await vibe_terminal('echo test');
+    expect(result).toHaveProperty('output');
+    expect(result).toHaveProperty('exitCode');
   });
 });
 ```
 
-### 3. Session State Tests
+### 3. Cross-Platform Regression Tests
 ```typescript
-describe('Session Persistence', () => {
-  test('preserves working directory', async () => {
-    const original = await vibe_terminal('pwd');
-    await vibe_terminal('cd /tmp');
-    const changed = await vibe_terminal('pwd');
-    await vibe_terminal('cd -');
-    const restored = await vibe_terminal('pwd');
-    
-    expect(changed.output.trim()).toBe('/tmp');
-    expect(restored.output.trim()).toBe(original.output.trim());
-  });
-
-  test('preserves environment variables', async () => {
-    await vibe_terminal('export TEST_VAR=vibe123');
-    const result = await vibe_terminal('echo $TEST_VAR');
-    expect(result.output.trim()).toBe('vibe123');
-  });
-
-  test('preserves aliases and functions', async () => {
-    await vibe_terminal('alias ll="ls -la"');
-    const result = await vibe_terminal('ll');
+// test/unit/vibe-terminal-base.test.ts
+describe('Cross-Platform Compatibility', () => {
+  const terminal = createVibeTerminal(); // Gets platform-specific
+  
+  test('basic commands work on all platforms', async () => {
+    const result = await terminal.execute('echo test');
     expect(result.exitCode).toBe(0);
-    expect(result.output).toMatch(/total/);
+    expect(result.output).toMatch(/test/);
+  });
+  
+  test('session persistence works on all platforms', async () => {
+    await terminal.execute('cd /tmp');
+    const result = await terminal.execute('pwd');
+    expect(result.output).toMatch(/tmp/);
   });
 });
 ```
 
-### 4. Intelligence Tests (vibe_recap)
-```typescript
-describe('vibe_recap Intelligence', () => {
-  test('recognizes Node.js workflow', async () => {
-    // Setup Node.js project
-    await vibe_terminal('cd test-env && mkdir node-test');
-    await vibe_terminal('cd node-test');
-    await vibe_terminal('npm init -y');
-    await vibe_terminal('npm install express');
-    
-    // Test recognition
-    const recap = await vibe_recap({ hours: 0.1 });
-    expect(recap.summary).toContain('Node.js');
-    expect(recap.insights).toContainEqual(
-      expect.stringContaining('Express')
-    );
-  });
-
-  test('recognizes Python workflow', async () => {
-    // Setup Python project
-    await vibe_terminal('cd test-env && mkdir py-test');
-    await vibe_terminal('cd py-test');
-    await vibe_terminal('python -m venv venv');
-    await vibe_terminal('source venv/bin/activate');
-    await vibe_terminal('pip install django');
-    
-    // Test recognition
-    const recap = await vibe_recap({ hours: 0.1 });
-    expect(recap.summary).toContain('Python');
-    expect(recap.insights).toContainEqual(
-      expect.stringContaining('Django')
-    );
-  });
-});
-```
-
-### 5. Error Recovery Tests
-```typescript
-describe('Error Recovery', () => {
-  test('recovers from command timeout', async () => {
-    const result = await vibe_terminal('sleep 60', { timeout: 1000 });
-    expect(result.error).toContain('timeout');
-    
-    // Should still work after timeout
-    const next = await vibe_terminal('echo recovered');
-    expect(next.output).toContain('recovered');
-  });
-
-  test('handles disconnection gracefully', async () => {
-    // Simulate work
-    await vibe_terminal('cd /tmp');
-    await vibe_terminal('export MY_VAR=test');
-    
-    // Force new session (simulates disconnect)
-    sessionManager.clearSession();
-    
-    // Recap should show recovery info
-    const recap = await vibe_recap({ type: 'status' });
-    expect(recap.summary).toContain('recovery');
-    expect(recap.nextActions).toBeDefined();
-  });
-});
-```
-
-## Writing Tests for Issues
-
-When Claude Desktop finds an issue:
-
-### 1. Write a Failing Test First
-```typescript
-// Found: Output accumulation bug
-test('output isolation bug', async () => {
-  const r1 = await vibe_terminal('echo first');
-  const r2 = await vibe_terminal('echo second');
-  
-  // This will fail, proving the bug exists
-  expect(r2.output).toBe('second\n');
-  expect(r2.output).not.toContain('first');
-});
-```
-
-### 2. Document in Handoff
-```markdown
-## Test Case for Issue
-
-```typescript
-// Add this test to verify the fix
-test('commands show only their own output', async () => {
-  const commands = ['echo one', 'echo two', 'echo three'];
-  const results = [];
-  
-  for (const cmd of commands) {
-    results.push(await vibe_terminal(cmd));
-  }
-  
-  expect(results[0].output).toBe('one\n');
-  expect(results[1].output).toBe('two\n');
-  expect(results[2].output).toBe('three\n');
-});
-```
-```
-
-### 3. Claude Code Makes It Pass
-The implementation should make the test green without breaking others.
-
-## Test Organization
-
-```
-test/
-├── unit/
-│   ├── vibe-terminal.test.ts    # Core terminal tests
-│   ├── vibe-recap.test.ts       # Core recap tests
-│   └── session.test.ts          # Session management
-├── integration/
-│   ├── workflows.test.ts        # Real workflow tests
-│   └── recovery.test.ts         # Disconnect recovery
-├── performance/
-│   └── benchmarks.test.ts       # Speed requirements
-└── fixtures/
-    └── test-data.ts            # Shared test data
-```
-
-## Running Tests
-
-```bash
-# All tests
-npm test
-
-# Watch mode during development
-npm run test:watch
-
-# Specific category
-npm run test:unit
-npm run test:integration
-npm run test:performance
-
-# Single file
-npm test -- test/unit/vibe-terminal.test.ts
-
-# With coverage
-npm run test:coverage
-```
-
-## Test Quality Standards
-
-### Every Test Must:
-1. **Be Fast** - No test over 5 seconds
-2. **Be Isolated** - No dependencies between tests
-3. **Be Clear** - Name describes exactly what's tested
-4. **Be Valuable** - Tests real behavior, not internals
-
-### Coverage Requirements
-- **Minimum**: 80% overall coverage
-- **Critical paths**: 100% coverage
-- **New features**: Must include tests
-- **Bug fixes**: Must include regression test
-
-## Performance Testing Guidelines
-
-```typescript
-// Always include performance assertions
-test('feature X maintains performance', async () => {
-  const baseline = await measureBaseline();
-  
-  // Add new feature
-  const withFeature = await measureWithFeature();
-  
-  // Must not degrade performance
-  expect(withFeature).toBeLessThan(baseline * 1.1); // Max 10% slower
-});
-```
-
-## CI/CD GitHub Actions
-
-### Main Workflow (.github/workflows/test.yml)
+## CI/CD Updates for Platform Tests
 
 ```yaml
-name: Test & Quality Gates
-
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-
+# .github/workflows/test.yml
 jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node-version: [20.x, 22.x]
-    
+        
     steps:
     - uses: actions/checkout@v4
     
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
-    
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        node-version: 20.x
     
     - name: Install dependencies
       run: npm ci
@@ -448,246 +354,130 @@ jobs:
     
     - name: Run tests
       run: npm test
+      # Jest automatically runs platform-appropriate tests
       
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: test-results-${{ matrix.os }}-${{ matrix.node-version }}
-        path: test-results/
-
-  performance:
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Need full history for baseline
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20.x
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Build
-      run: npm run build
-      
-    - name: Checkout base branch
+    - name: Verify platform tests ran
       run: |
-        git checkout ${{ github.base_ref }}
-        npm ci
-        npm run build
-    
-    - name: Capture baseline performance
-      run: |
-        npm run test:performance -- --json > baseline.json
-        echo "::set-output name=baseline::$(cat baseline.json)"
-    
-    - name: Checkout PR branch
-      run: |
-        git checkout ${{ github.head_ref }}
-        npm ci
-        npm run build
-    
-    - name: Run performance tests
-      run: npm run test:performance -- --json > current.json
-    
-    - name: Compare performance
-      run: |
-        node scripts/compare-performance.js baseline.json current.json
-        # Fails if any metric degrades >10%
-
-  coverage:
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20.x
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Build
-      run: npm run build
-    
-    - name: Run tests with coverage
-      run: npm run test:coverage
-    
-    - name: Check coverage thresholds
-      run: |
-        npm run coverage:check
-        # Fails if coverage < 80% lines, < 70% branches
-    
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage/lcov.info
-        fail_ci_if_error: true
-
-  quality:
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20.x
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Lint
-      run: npm run lint
-    
-    - name: Type check
-      run: npm run type-check
-    
-    - name: Check test organization
-      run: |
-        # Ensure no test files in src/
-        if find src -name "*.test.ts" -o -name "*.spec.ts" | grep .; then
-          echo "❌ Test files found in src/ directory!"
-          exit 1
+        if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+          echo "Checking PC tests ran..."
+          grep "test/pc/" test-results.json || exit 1
+        else
+          echo "Checking Mac tests ran..."
+          grep "test/mac/" test-results.json || exit 1
         fi
-        echo "✅ No test files in src/"
 ```
 
-### Performance Comparison Script (scripts/compare-performance.js)
-
-```javascript
-#!/usr/bin/env node
-import { readFileSync } from 'fs';
-
-const baseline = JSON.parse(readFileSync(process.argv[2], 'utf8'));
-const current = JSON.parse(readFileSync(process.argv[3], 'utf8'));
-
-const MAX_DEGRADATION = 1.1; // 10% slower allowed
-
-let failed = false;
-
-for (const [test, baselineTime] of Object.entries(baseline.times)) {
-  const currentTime = current.times[test];
-  
-  if (!currentTime) {
-    console.warn(`⚠️  Test ${test} missing in current results`);
-    continue;
-  }
-  
-  const ratio = currentTime / baselineTime;
-  
-  if (ratio > MAX_DEGRADATION) {
-    console.error(`❌ Performance regression in ${test}:`);
-    console.error(`   Baseline: ${baselineTime}ms`);
-    console.error(`   Current:  ${currentTime}ms`);
-    console.error(`   Degradation: ${((ratio - 1) * 100).toFixed(1)}%`);
-    failed = true;
-  } else if (ratio < 0.9) {
-    console.log(`✅ Performance improved in ${test}: ${((1 - ratio) * 100).toFixed(1)}% faster`);
-  }
-}
-
-if (failed) {
-  console.error('\n❌ Performance regression detected!');
-  process.exit(1);
-} else {
-  console.log('\n✅ No performance regressions');
-}
-```
-
-### Branch Protection Rules
-
-Configure in GitHub repository settings:
-
-1. **Require status checks to pass**:
-   - test (ubuntu-latest, 20.x)
-   - test (macos-latest, 20.x)
-   - test (windows-latest, 20.x)
-   - performance
-   - coverage
-   - quality
-
-2. **Require branches to be up to date**
-
-3. **Require code review** from at least 1 reviewer
-
-4. **Dismiss stale reviews** when new commits pushed
-
-5. **Restrict who can push** to main branch
-
-### Coverage Enforcement (package.json)
-
-```json
-{
-  "scripts": {
-    "test:coverage": "jest --coverage",
-    "coverage:check": "jest --coverage --coverageThreshold='{\"global\":{\"lines\":80,\"branches\":70,\"functions\":80,\"statements\":80}}'",
-    "test:performance": "jest test/performance --testTimeout=30000"
-  }
-}
-```
-
-### Pre-commit Hooks (.husky/pre-commit)
-
-```bash
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
-# Run tests
-npm test || exit 1
-
-# Check for test files in src/
-if find src -name "*.test.ts" -o -name "*.spec.ts" | grep -q .; then
-  echo "❌ Error: Test files found in src/ directory"
-  echo "Move all test files to test/ directory"
-  exit 1
-fi
-
-# Run quick performance check
-npm run test:performance -- --testNamePattern="simple echo" || exit 1
-```
-
-### Regression Prevention Metrics
+## Regression Prevention Metrics
 
 Track these in every CI run:
-1. **Test Count**: Must never decrease
+1. **Test Count Per Platform**: Must never decrease
+   - Cross-platform tests: X
+   - Mac-specific tests: Y (on Mac)
+   - PC-specific tests: Z (on PC)
 2. **Coverage**: Must never decrease
 3. **Performance**: Max 10% degradation allowed
-4. **Build Size**: Monitor for unexpected growth
+4. **API Compatibility**: Factory tests must pass
 5. **Type Coverage**: Maintain 100% type safety
 
-## TDD for Bug Fixes
+## Platform-Specific Bug Fix Workflow
 
-1. **Reproduce** - Write test that fails
-2. **Fix** - Make test pass
-3. **Verify** - All tests still pass
-4. **Prevent** - Add edge case tests
+### Division of Labor
 
-## The First Test
+**Mac Implements**:
+- `src/os-detector.ts` - Platform detection
+- `src/vibe-terminal-base.ts` - Base class
+- `src/vibe-terminal-mac.ts` - Mac implementation
+- `src/vibe-terminal.ts` - Factory pattern
 
-For any new feature, start here:
+**PC Implements**:
+- `src/vibe-terminal-pc.ts` - Windows implementation ONLY
+- `test/pc/*.test.ts` - Windows-specific tests
+
+### Workflow Example
+
+1. **PC Discovers Bug**
+   ```bash
+   # Command echo bug on Windows
+   vibe_terminal("echo test")
+   # Output: "eecho test"  # Bug!
+   ```
+
+2. **PC Writes Test**
+   ```typescript
+   // test/pc/command-echo-bug.test.ts
+   test('no command echo on Windows', async () => {
+     const terminal = new VibeTerminalPC();
+     const result = await terminal.execute('echo test');
+     expect(result.output).toBe('test\r\n');
+     expect(result.output).not.toMatch(/^eecho/);
+   });
+   ```
+
+3. **Mac Creates Foundation**
+   - Implements os-detector.ts
+   - Implements vibe-terminal-base.ts
+   - Implements vibe-terminal-mac.ts
+   - Creates factory in vibe-terminal.ts
+   - Creates STUB vibe-terminal-pc.ts
+
+4. **PC Implements Their Platform**
+   ```bash
+   git pull  # Get foundation from Mac
+   
+   # Implement Windows-specific code
+   desktop-commander:edit_block file="src/vibe-terminal-pc.ts"
+   
+   # Test it works
+   npm test  # PC tests pass!
+   
+   # Push implementation
+   git add src/vibe-terminal-pc.ts test/pc/*.test.ts
+   git commit -m "feat: Windows terminal implementation"
+   git push  # ALLOWED for their platform file!
+   ```
+
+5. **Both Verify**
+   - Mac: `npm test` - All Mac tests pass
+   - PC: `npm test` - All PC tests pass
+   - CI: All platforms green
+
+## Why PC Can Push vibe-terminal-pc.ts
+
+This exception to the "no src/" rule makes sense because:
+
+1. **Platform Isolation**: vibe-terminal-pc.ts ONLY affects Windows
+2. **Testing Authority**: PC is the only one who can properly test Windows code
+3. **TDD Compliance**: PC writes tests first, then implements
+4. **No Cross-Contamination**: Can't break Mac functionality
+5. **Efficiency**: Avoids unnecessary handoffs for platform-specific code
+
+**Safety Rules**:
+- PC can ONLY modify `src/vibe-terminal-pc.ts`
+- Must have passing tests before pushing
+- Cannot modify base class or factory
+- Cannot modify Mac implementation
+- CI will verify no regression on other platforms
+
+## The First Test (Updated)
+
+For any new platform-specific feature:
 ```typescript
-test('feature exists and is callable', () => {
-  expect(typeof myFeature).toBe('function');
+// 1. Start with detection
+test('platform is detected correctly', () => {
+  expect(detectPlatform()).toBe(process.platform === 'win32' ? 'windows' : 'mac');
+});
+
+// 2. Test the factory
+test('factory returns correct implementation', () => {
+  const terminal = createVibeTerminal();
+  expect(terminal).toBeDefined();
+});
+
+// 3. Test platform-specific behavior
+test('platform-specific feature works', async () => {
+  // Your platform test
 });
 ```
-
-Then build up:
-1. Basic functionality
-2. Error cases
-3. Performance
-4. Edge cases
 
 ---
 

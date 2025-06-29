@@ -16,11 +16,34 @@ export async function generateRecap(args: RecapArgs): Promise<string> {
   const relevantHistory = history.filter(cmd => cmd.timestamp >= cutoffTime);
   
   if (args.format === 'json') {
+    // For status type, include additional fields
+    if (args.type === 'status') {
+      const suggestions = generateNextSteps(relevantHistory, sessionState);
+      return JSON.stringify({
+        sessionId: sessionState.sessionId,
+        startTime: sessionState.startTime,
+        commandCount: relevantHistory.length,
+        commands: relevantHistory,
+        currentDirectory: sessionState.workingDirectory,
+        sessionInfo: {
+          shellType: sessionState.shellType,
+          lastActivity: sessionState.lastActivity,
+          commandCount: relevantHistory.length
+        },
+        nextActions: suggestions,
+        summary: `${relevantHistory.length} commands executed in current session`,
+        insights: detectKeyActivities(relevantHistory)
+      }, null, 2);
+    }
+    
+    // Default JSON format
     return JSON.stringify({
       sessionId: sessionState.sessionId,
       startTime: sessionState.startTime,
       commandCount: relevantHistory.length,
-      commands: relevantHistory
+      commands: relevantHistory,
+      summary: `${relevantHistory.length} commands executed in current session`,
+      insights: detectKeyActivities(relevantHistory)
     }, null, 2);
   }
   
@@ -198,6 +221,18 @@ function generateFullRecap(sessionState: SessionState, history: CommandRecord[],
   return output;
 }
 
+// Helper function to get time difference as string
+function getTimeDiff(start: Date, end: Date): string {
+  const diff = end.getTime() - start.getTime();
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  
+  if (hours > 0) return `${hours}h ${minutes % 60}m`;
+  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+  return `${seconds}s`;
+}
+
 // Helper function to detect key activities from command history
 function detectKeyActivities(history: CommandRecord[]): string[] {
   const activities: string[] = [];
@@ -205,6 +240,7 @@ function detectKeyActivities(history: CommandRecord[]): string[] {
   // Check for git operations
   const gitCommands = history.filter(cmd => cmd.command.startsWith('git'));
   if (gitCommands.length > 0) {
+    activities.push('Git version control activity');
     const hasCommit = gitCommands.some(cmd => cmd.command.includes('commit'));
     const hasPush = gitCommands.some(cmd => cmd.command.includes('push'));
     if (hasCommit) activities.push('Made git commits');
@@ -289,18 +325,3 @@ function generateNextSteps(history: CommandRecord[], sessionState: SessionState)
   return suggestions.slice(0, 3); // Limit to 3 suggestions
 }
 
-// Helper function to calculate time difference
-function getTimeDiff(start: Date, end: Date): string {
-  const diff = end.getTime() - start.getTime();
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  
-  if (hours > 0) {
-    return `${hours}h ${minutes % 60}m`;
-  } else if (minutes > 0) {
-    return `${minutes}m ${seconds % 60}s`;
-  } else {
-    return `${seconds}s`;
-  }
-}

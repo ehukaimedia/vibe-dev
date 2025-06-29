@@ -1,8 +1,21 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
-// Mock the terminal and recap modules before importing server
-jest.mock('../../src/vibe-terminal.js');
-jest.mock('../../src/vibe-recap.js');
+// Create manual mocks
+const mockExecuteTerminalCommand = jest.fn() as jest.MockedFunction<any>;
+const mockGenerateRecap = jest.fn() as jest.MockedFunction<any>;
+
+// Mock the terminal and recap modules using unstable_mockModule for ES modules
+await jest.unstable_mockModule('../../src/vibe-terminal.js', () => ({
+  executeTerminalCommand: mockExecuteTerminalCommand
+}));
+
+await jest.unstable_mockModule('../../src/vibe-recap.js', () => ({
+  generateRecap: mockGenerateRecap
+}));
+
+// Import after mocking
+const { executeTerminalCommand } = await import('../../src/vibe-terminal.js');
+const { generateRecap } = await import('../../src/vibe-recap.js');
 
 describe('MCP Server Integration', () => {
   beforeEach(() => {
@@ -10,10 +23,7 @@ describe('MCP Server Integration', () => {
   });
 
   it('should handle vibe_terminal tool execution', async () => {
-    const { executeTerminalCommand } = await import('../../src/vibe-terminal.js');
-    const mockExecute = executeTerminalCommand as jest.MockedFunction<typeof executeTerminalCommand>;
-    
-    mockExecute.mockResolvedValue({
+    const mockResult = {
       output: 'test output',
       exitCode: 0,
       duration: 100,
@@ -21,45 +31,40 @@ describe('MCP Server Integration', () => {
       timestamp: new Date(),
       command: 'echo "test"',
       workingDirectory: '/test'
-    });
+    };
+    mockExecuteTerminalCommand.mockResolvedValue(mockResult);
 
     const result = await executeTerminalCommand('echo "test"');
     
-    expect(mockExecute).toHaveBeenCalledWith('echo "test"');
+    expect(mockExecuteTerminalCommand).toHaveBeenCalledWith('echo "test"');
     expect(result.output).toBe('test output');
     expect(result.exitCode).toBe(0);
   });
 
   it('should handle vibe_recap tool execution', async () => {
-    const { generateRecap } = await import('../../src/vibe-recap.js');
-    const mockRecap = generateRecap as jest.MockedFunction<typeof generateRecap>;
-    
-    mockRecap.mockResolvedValue('Test recap content');
+    const mockRecapResult = 'Test recap content';
+    mockGenerateRecap.mockResolvedValue(mockRecapResult);
 
     const result = await generateRecap({ hours: 24, format: 'text' });
     
-    expect(mockRecap).toHaveBeenCalledWith({ hours: 24, format: 'text' });
+    expect(mockGenerateRecap).toHaveBeenCalledWith({ hours: 24, format: 'text' });
     expect(result).toBe('Test recap content');
   });
 
   it('should handle tool execution errors', async () => {
-    const { executeTerminalCommand } = await import('../../src/vibe-terminal.js');
-    const mockExecute = executeTerminalCommand as jest.MockedFunction<typeof executeTerminalCommand>;
-    
-    mockExecute.mockRejectedValue(new Error('Command failed'));
+    const mockError = new Error('Command failed');
+    mockExecuteTerminalCommand.mockRejectedValue(mockError);
 
     await expect(executeTerminalCommand('failing-command')).rejects.toThrow('Command failed');
   });
 
   it('should use default values for recap', async () => {
-    const { generateRecap } = await import('../../src/vibe-recap.js');
-    const mockRecap = generateRecap as jest.MockedFunction<typeof generateRecap>;
-    
-    mockRecap.mockResolvedValue('Default recap');
+    const mockDefaultRecap = 'Default recap';
+    mockGenerateRecap.mockResolvedValue(mockDefaultRecap);
 
     const result = await generateRecap({ hours: 1, format: 'text' });
     
-    expect(mockRecap).toHaveBeenCalledWith({ hours: 1, format: 'text' });
+    expect(mockGenerateRecap).toHaveBeenCalledWith({ hours: 1, format: 'text' });
     expect(result).toBe('Default recap');
   });
 });
