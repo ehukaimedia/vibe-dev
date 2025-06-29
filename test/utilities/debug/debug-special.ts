@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { executeTerminalCommand } from '../vibe-terminal.js';
+import { executeTerminalCommand } from '../../../src/vibe-terminal.js';
 
 async function debugSpecial() {
   console.log('Debugging special characters test...\n');

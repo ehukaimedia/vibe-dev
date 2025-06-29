@@ -34,8 +34,20 @@ test/
 │   └── recovery.test.ts        # Disconnect recovery
 ├── performance/
 │   └── benchmarks.test.ts      # Speed requirements
-└── fixtures/
-    └── test-data.ts            # Shared test data
+├── fixtures/
+│   └── test-data.ts            # Shared test data
+└── utilities/                  # Debug and test utilities (NEW!)
+    ├── debug/                  # Cross-platform debug tools
+    │   ├── debug-command.ts    # Command debugging
+    │   ├── debug-recap.ts      # Recap debugging
+    │   ├── debug-special.ts    # Special cases
+    │   └── recap-demo.ts       # Demonstration
+    ├── windows-debug/          # Windows-specific debug tools
+    │   ├── test-direct-spawn.js
+    │   ├── test-server-layer.js
+    │   ├── test-powershell.js
+    │   └── debug-with-vibe-recap.js
+    └── validate-organization.js # Project structure validation
 ```
 
 ### PC Workflow - Write Platform-Specific Tests

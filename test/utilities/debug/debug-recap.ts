@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { executeTerminalCommand } from '../vibe-terminal.js';
-import { generateRecap } from '../vibe-recap.js';
-import { getTerminal } from '../vibe-terminal.js';
+import { executeTerminalCommand } from '../../../src/vibe-terminal.js';
+import { generateRecap } from '../../../src/vibe-recap.js';
+import { getTerminal } from '../../../src/vibe-terminal.js';
 
 async function debugRecap() {
   console.log('Debugging recap pattern detection...\n');

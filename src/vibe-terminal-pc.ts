@@ -1,6 +1,7 @@
 import { SessionState, TerminalConfig } from './types.js';
 import { VibeTerminalBase } from './vibe-terminal-base.js';
 import * as os from 'os';
+import * as fs from 'fs';
 
 export class VibeTerminalPC extends VibeTerminalBase {
   constructor(config: TerminalConfig = {}) {
@@ -8,7 +9,20 @@ export class VibeTerminalPC extends VibeTerminalBase {
   }
   
   getDefaultShell(): string {
-    return 'powershell.exe';
+    // Use full path to PowerShell to avoid PATH issues
+    // Try PowerShell 7 first (pwsh), then fall back to Windows PowerShell
+    const pwsh7 = 'C:\\Program Files\\PowerShell\\7\\pwsh.exe';
+    const powershell5 = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+    const cmd = 'C:\\Windows\\System32\\cmd.exe';
+    
+    // Check if PowerShell 7 exists
+    if (fs.existsSync(pwsh7)) {
+      return pwsh7;
+    } else if (fs.existsSync(powershell5)) {
+      return powershell5;
+    } else {
+      return cmd;
+    }
   }
   
   detectShellType(shellPath: string): SessionState['shellType'] {
@@ -20,8 +34,7 @@ export class VibeTerminalPC extends VibeTerminalBase {
     if (lowerPath.includes('sh')) return 'sh';
     // Note: 'cmd' is not in the type union, return 'unknown'
     return 'unknown';
-  }
-  
+  }  
   normalizePath(path: string): string {
     // Handle tilde expansion
     if (path.startsWith('~')) {
@@ -59,17 +72,22 @@ export class VibeTerminalPC extends VibeTerminalBase {
     if (!lastLine) return false;
     
     // PowerShell prompt: PS C:\...>
-    if (/^PS [A-Z]:\\.*>\s*$/.test(lastLine)) return true;
+    if (/^PS [A-Z]:\\.*>\s*$/.test(lastLine)) {
+      return true;
+    }
     
     // CMD prompt: C:\...>
-    if (/^[A-Z]:\\.*>\s*$/.test(lastLine)) return true;
+    if (/^[A-Z]:\\.*>\s*$/.test(lastLine)) {
+      return true;
+    }
     
     // Git Bash prompt: ends with $
-    if (/\$\s*$/.test(lastLine)) return true;
+    if (/\$\s*$/.test(lastLine)) {
+      return true;
+    }
     
     return false;
-  }
-  
+  }  
   cleanOutput(rawOutput: string, command: string): string {
     let output = rawOutput;
     
@@ -102,8 +120,7 @@ export class VibeTerminalPC extends VibeTerminalBase {
         lines.shift(); // Remove first line
         output = lines.join('\n');
       }
-    }
-    
+    }    
     // Remove PowerShell prompts
     output = output.replace(/^PS [A-Z]:\\.*>\s*/gm, '');
     

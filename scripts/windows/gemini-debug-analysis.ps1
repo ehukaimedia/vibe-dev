@@ -1,0 +1,5 @@
+# Gemini Debug Analysis Script
+cd C:\Users\arsen\Desktop\AI-Applications\Node\vibe-dev
+$env:GOOGLE_CLOUD_PROJECT="centered-scion-464400-v5"
+Write-Host "Running Gemini analysis..."
+gemini --model gemini-2.5-pro "I found debug logging code improperly added to vibe-terminal-pc.ts and a new debug-logger.ts file in the vibe-dev project. This violates the principle that vibe_recap handles all logging. The Windows terminal times out after 5 seconds and the debug log is never created. Please provide: 1) Safe cleanup steps to remove debug code while keeping good changes like full PowerShell paths, 2) Test scripts for test/pc/windows-scripts/ to debug without modifying src files, 3) How to use vibe_recap effectively for debugging, 4) Your hypothesis about why it times out BEFORE the constructor is called. Format as markdown." | Out-File -FilePath "docs\gemini-handoffs\debug-analysis-response.md" -Encoding utf8
