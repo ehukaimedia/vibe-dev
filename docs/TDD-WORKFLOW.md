@@ -13,7 +13,7 @@
 
 **The Perfect TDD Split**:
 - **Windows PC**: Writes failing tests that prove bugs exist (including platform-specific bugs)
-- **Mac/Linux**: Implements code to make tests pass (including platform-specific implementations)
+- **Mac**: Implements code to make tests pass (including platform-specific implementations)
 
 ### Test Organization (Updated for OS Split)
 
@@ -181,7 +181,6 @@ export default {
     // Platform-specific tests based on current OS
     ...(process.platform === 'darwin' ? ['<rootDir>/test/mac/**/*.test.ts'] : []),
     ...(process.platform === 'win32' ? ['<rootDir>/test/pc/**/*.test.ts'] : []),
-    ...(process.platform === 'linux' ? ['<rootDir>/test/mac/**/*.test.ts'] : []), // Linux uses Mac tests
   ],
   
   // Remove old ignore patterns - we use testMatch now
