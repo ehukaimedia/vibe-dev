@@ -381,6 +381,7 @@ Before pushing to feature branch, verify:
 3. **DON'T** implement Windows logic - just stubs with "Not implemented" errors
 4. **DON'T** skip tests - run after each major change
 5. **DON'T** change test organization - platform directories are already configured
+6. **DON'T** break the singleton pattern - getTerminal() must return same instance
 
 ## Next Steps
 After this implementation:
