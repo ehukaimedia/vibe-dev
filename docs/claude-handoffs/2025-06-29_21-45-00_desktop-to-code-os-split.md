@@ -8,11 +8,15 @@
 
 **Current Status**: Production-ready but has platform-specific command echo bug requiring OS-specific implementations.
 
+**Current Test Coverage**: 158/162 tests passing (97.5%) - MUST MAINTAIN OR IMPROVE
+
 **TDD Workflow**: We follow strict Test-Driven Development
 - All tests in `test/` directory (NEVER in `src/`)
 - Platform tests auto-selected: `test/mac/`, `test/pc/`, `test/unit/`
 - Every change must keep tests passing
 - Run `npm test` frequently
+
+**CRITICAL**: Do NOT modify vibe-recap.ts - it's already cross-platform and working perfectly
 
 ## Issue Details
 **Current Behavior**:
@@ -33,6 +37,15 @@
 
 You need to split ONLY vibe-terminal into platform-specific implementations. vibe-recap stays unchanged as it's already cross-platform.
 
+**Before Starting - Baseline Check**:
+```bash
+cd /path/to/vibe-dev
+git pull origin main
+npm test
+# Record current passing tests (should be ~158/162)
+# If tests fail at start, stop and investigate
+```
+
 ```bash
 cd /path/to/vibe-dev
 git pull origin main
@@ -45,12 +58,18 @@ git checkout -b feat/os-specific-terminals
 # - Platform configuration objects
 # - Export Platform enum
 
+# CHECKPOINT: After creating os-detector.ts
+npm test  # Should still pass - no integration yet
+
 # Step 2: Create vibe-terminal-base.ts
 # Extract from current vibe-terminal.ts:
 # - Session management
 # - History tracking
 # - Abstract methods for platform-specific ops
 # - Common interfaces
+
+# CHECKPOINT: After creating base class
+npm test  # Should still pass - no integration yet
 
 # Step 3: Create vibe-terminal-mac.ts
 # Move Mac-specific code:
@@ -59,19 +78,29 @@ git checkout -b feat/os-specific-terminals
 # - Signal handling
 # - Extend VibeTerminalBase
 
+# CHECKPOINT: After creating Mac implementation
+npm test  # Should still pass - no integration yet
+
 # Step 4: Update vibe-terminal.ts
 # Make it a factory that:
 # - Uses os-detector
 # - Returns appropriate implementation
 # - Maintains same external API
 
-# Step 5: Write tests
-npm test  # Ensure nothing breaks
+# CRITICAL CHECKPOINT: After factory refactor
+npm test  # MUST maintain same number of passing tests
+# If ANY test fails that was passing before, STOP and fix
 
+# Step 5: Write tests
 # Create new tests:
 # - test/unit/os-detector.test.ts
 # - test/unit/vibe-terminal-base.test.ts
 # - test/mac/vibe-terminal-mac.test.ts
+
+# Run specific test suites to verify:
+npm test -- test/unit/os-detector.test.ts
+npm test -- test/unit/vibe-terminal-base.test.ts
+npm test -- test/mac/vibe-terminal-mac.test.ts
 
 # Step 6: Create PC stub
 # Create src/vibe-terminal-pc.ts with:
@@ -79,8 +108,9 @@ npm test  # Ensure nothing breaks
 # - TODO comments for PC implementation
 # - Stub methods that throw "Not implemented"
 
-# Verify all tests pass
-npm test
+# FINAL VERIFICATION
+npm test  # Should have same or MORE passing tests than baseline
+npm run build  # Ensure TypeScript compilation succeeds
 
 # Commit and push
 git add .
@@ -320,12 +350,37 @@ describe('Mac Terminal', () => {
 ```
 
 ## Success Criteria
-- [ ] All existing tests pass
+- [ ] All existing tests pass (maintain 158/162 or better)
 - [ ] OS detection works correctly
 - [ ] Mac implementation separated
 - [ ] PC stub ready for Windows development
 - [ ] No breaking changes to external API
 - [ ] Factory pattern maintains compatibility
+- [ ] TypeScript compilation succeeds
+- [ ] vibe-recap.ts remains untouched
+
+## Regression Prevention Checklist
+
+Before pushing to feature branch, verify:
+
+1. **Test Coverage**: Run `npm test` and confirm at least 158 tests pass
+2. **Build Success**: Run `npm run build` with no TypeScript errors
+3. **API Compatibility**: Test these manually:
+   ```javascript
+   // These MUST still work:
+   const result = await vibe_terminal("echo test");
+   const recap = await vibe_recap({ hours: 1 });
+   ```
+4. **No vibe-recap Changes**: Run `git diff src/vibe-recap.ts` - should be empty
+5. **Platform Detection**: On Mac, verify `detectPlatform()` returns 'mac'
+
+## Common Pitfalls to Avoid
+
+1. **DON'T** change vibe-recap.ts - it's already cross-platform
+2. **DON'T** break the external API - vibe_terminal() must work exactly the same
+3. **DON'T** implement Windows logic - just stubs with "Not implemented" errors
+4. **DON'T** skip tests - run after each major change
+5. **DON'T** change test organization - platform directories are already configured
 
 ## Next Steps
 After this implementation:
