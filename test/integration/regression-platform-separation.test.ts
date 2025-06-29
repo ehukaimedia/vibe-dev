@@ -55,6 +55,6 @@ describe('Platform Separation Regression Tests', () => {
     
     // Verify isLinux doesn't exist
     const osDetector = await import('../../src/os-detector.js');
-    expect(osDetector.isLinux).toBeUndefined();
+    expect('isLinux' in osDetector).toBe(false);
   });
 });
