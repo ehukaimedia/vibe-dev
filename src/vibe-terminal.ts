@@ -23,9 +23,7 @@ export function createVibeTerminal(config?: TerminalConfig): VibeTerminal {
   
   switch (platform) {
     case Platform.WINDOWS:
-      // For now, fall back to Mac implementation on Windows since PC is not ready
-      // When PC implementation is ready, this would return new VibeTerminalPC(config)
-      return new VibeTerminalMac(config) as any;
+      return new VibeTerminalPC(config) as any;
     case Platform.MAC:
       return new VibeTerminalMac(config) as any;
     default:
