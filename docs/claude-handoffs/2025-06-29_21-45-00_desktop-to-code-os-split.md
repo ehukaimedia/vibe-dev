@@ -14,12 +14,6 @@
 - Every change must keep tests passing
 - Run `npm test` frequently
 
-## For You (Human Coordinator)
-- Current issue: Single vibe-terminal.ts handles all platforms, causing complexity
-- Impact: Command echo bug, platform-specific quirks mixed together
-- Priority: High - Architectural improvement
-- Expected outcome: Clean separation of platform code, easier maintenance
-
 ## Issue Details
 **Current Behavior**:
 - All platform logic mixed in one file
