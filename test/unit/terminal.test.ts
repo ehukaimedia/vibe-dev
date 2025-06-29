@@ -1,19 +1,17 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
-// Mock node-pty first
-const mockPty = {
+// Mock pty-adapter first
+const mockPtyAdapter = {
   pid: 12345,
   onData: jest.fn(),
-  onExit: jest.fn(),
   write: jest.fn(),
   kill: jest.fn(),
-  cols: 80,
-  rows: 24
+  resize: jest.fn()
 };
 
 // Mock modules using ESM approach
-await jest.unstable_mockModule('node-pty', () => ({
-  spawn: jest.fn(() => mockPty)
+await jest.unstable_mockModule('../../src/pty-adapter.js', () => ({
+  createPtyAdapter: jest.fn(() => mockPtyAdapter)
 }));
 
 const commandHistory: any[] = [];

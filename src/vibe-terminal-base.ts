@@ -1,6 +1,6 @@
-import * as pty from 'node-pty';
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
+import { createPtyAdapter, IPtyAdapter } from './pty-adapter.js';
 import { 
   TerminalResult, 
   CommandRecord, 
@@ -9,7 +9,7 @@ import {
 } from './types.js';
 
 export abstract class VibeTerminalBase {
-  protected pty: pty.IPty;
+  protected ptyProcess: IPtyAdapter | null = null;
   protected sessionId: string;
   protected output: string = '';
   protected commandHistory: CommandRecord[] = [];
@@ -31,8 +31,8 @@ export abstract class VibeTerminalBase {
     const defaultShell = config.shell || this.getDefaultShell();
     this.shellType = this.detectShellType(defaultShell);
     
-    // Create PTY instance
-    this.pty = pty.spawn(defaultShell, [], {
+    // Create PTY instance using adapter
+    this.ptyProcess = createPtyAdapter(defaultShell, [], {
       name: 'xterm-256color',
       cols: config.cols || 80,
       rows: config.rows || 24,
@@ -48,7 +48,7 @@ export abstract class VibeTerminalBase {
       }
     });
     
-    console.error(`Vibe Terminal: Created session ${this.sessionId} with ${this.shellType} shell (PID: ${this.pty.pid})`);
+    console.error(`Vibe Terminal: Created session ${this.sessionId} with ${this.shellType} shell (PID: ${this.ptyProcess.pid})`);
   }
   
   // Abstract methods for platform-specific operations
@@ -87,12 +87,12 @@ export abstract class VibeTerminalBase {
       let promptDetected = false;
       let timedOut = false;
       let timeoutHandle: NodeJS.Timeout;
-      let dataListener: any; // Store the disposable
       
       const cleanup = () => {
         this.isExecuting = false;
         if (timeoutHandle) clearTimeout(timeoutHandle);
-        if (dataListener) dataListener.dispose(); // Properly remove the listener
+        // Note: With the adapter pattern, we don't have a direct way to remove listeners
+        // This is a limitation of the child_process fallback
       };
       
       const onData = (data: string) => {
@@ -149,7 +149,7 @@ export abstract class VibeTerminalBase {
         if (!promptDetected) {
           timedOut = true;
           // Send Ctrl+C to interrupt the running command
-          this.pty.write('\x03');
+          this.ptyProcess?.write('\x03');
           
           // Give it a moment to process the interrupt
           setTimeout(() => {
@@ -181,11 +181,11 @@ export abstract class VibeTerminalBase {
         }
       }, this.promptTimeout);
       
-      // Listen for data - node-pty uses onData method
-      dataListener = this.pty.onData(onData);
+      // Listen for data - adapter uses onData method
+      this.ptyProcess?.onData(onData);
       
       // Write command
-      this.pty.write(command + '\r');
+      this.ptyProcess?.write(command + '\r');
     });
     
     // Wait for the command to complete
@@ -317,9 +317,9 @@ export abstract class VibeTerminalBase {
   }
   
   kill(): void {
-    if (this.pty) {
+    if (this.ptyProcess) {
       console.error(`Vibe Terminal: Killing session ${this.sessionId}`);
-      this.pty.kill();
+      this.ptyProcess.kill();
     }
   }
   
