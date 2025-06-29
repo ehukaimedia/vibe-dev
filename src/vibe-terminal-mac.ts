@@ -212,6 +212,19 @@ export class VibeTerminalMac extends VibeTerminalBase {
     // Start with basic cleaning
     let cleaned = rawOutput;
     
+    // FIX: Remove the command echo bug pattern where first char is typed, then backspace, then full command
+    // Pattern: firstChar + \b + fullCommand + [?2004l
+    if (command.length > 0) {
+      const firstChar = command[0];
+      // Handle the specific pattern: e\becho or p\bpwd
+      const echoPattern = new RegExp(`${firstChar}\\x08${command}`, 'g');
+      cleaned = cleaned.replace(echoPattern, command);
+    }
+    
+    // Remove bracketed paste mode markers
+    cleaned = cleaned.replace(/\[.*?2004h/g, '');
+    cleaned = cleaned.replace(/\[.*?2004l/g, '');
+    
     // Remove ANSI escape sequences
     cleaned = cleaned.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
     cleaned = cleaned.replace(/\x1B\[[0-9;]*\?[0-9]*[a-zA-Z]/g, '');
@@ -233,6 +246,12 @@ export class VibeTerminalMac extends VibeTerminalBase {
       // Split into lines
       const lines = cleaned.split('\n');
       
+      // Debug logging in test mode
+      if (process.env.DEBUG_CLEAN) {
+        console.log('TEST MODE - Lines:', lines);
+        console.log('TEST MODE - Command:', command);
+      }
+      
       // Find the line containing the command - look for the first line that contains the command
       let commandLineIndex = -1;
       for (let i = 0; i < lines.length; i++) {
@@ -242,6 +261,7 @@ export class VibeTerminalMac extends VibeTerminalBase {
             line.includes(`$ ${command}`) ||
             line.includes(`# ${command}`) ||
             line.endsWith(` ${command}`) ||
+            line.trim() === command ||  // Handle case where command is on its own line
             (line.includes(command) && (line.includes('%') || line.includes('$') || line.includes('#')))) {
           commandLineIndex = i;
           break;
@@ -249,14 +269,27 @@ export class VibeTerminalMac extends VibeTerminalBase {
       }
       
       if (commandLineIndex >= 0) {
+        if (process.env.DEBUG_CLEAN) {
+          console.log('TEST MODE - Found command at index:', commandLineIndex);
+        }
         // Get lines after the command
         let outputLines = lines.slice(commandLineIndex + 1);
         
-        // Remove trailing prompt lines
+        // Remove trailing prompt lines and filter out command echoes
+        outputLines = outputLines.filter(line => {
+          const cleanedLine = line.replace(/\x1B/g, '').trim();
+          // Filter out command echo and prompt lines with command
+          return cleanedLine !== command && 
+                 !(line.includes('%') && line.includes(command)) &&
+                 !line.match(/^%\s*$/);
+        });
+        
         while (outputLines.length > 0) {
           const lastLine = outputLines[outputLines.length - 1];
+          const cleanedLastLine = lastLine.replace(/\x1B/g, '').trim();
           // Check if last line looks like a prompt
           if (/[%$#>]\s*$/.test(lastLine) || 
+              /^%\s*$/.test(cleanedLastLine) ||  // Just a % with spaces
               lastLine.includes('@') && lastLine.includes('%') ||
               lastLine.trim() === '' ||
               lastLine.includes('ehukaimedia@')) {
@@ -275,11 +308,14 @@ export class VibeTerminalMac extends VibeTerminalBase {
         if (lines[i].includes(command) && (lines[i].includes('%') || lines[i].includes('$') || lines[i].includes('#'))) {
           // Get lines after the command, filtering out prompts
           const outputLines = lines.slice(i + 1).filter(line => {
+            // Also filter out lines that are just the command with escape chars
+            const cleanedLine = line.replace(/\x1B/g, '').trim();
             return !(line.match(/^%\s*$/) || 
                     line.match(/[%$#>]\s*$/) ||
                     (line.includes('@') && line.includes('%')) ||
                     line.includes('ehukaimedia@') ||
-                    line.trim() === '');
+                    line.trim() === '' ||
+                    cleanedLine === command);  // Filter out command echo
           });
           if (outputLines.length > 0) {
             return outputLines.join('\n').trim();
@@ -289,14 +325,17 @@ export class VibeTerminalMac extends VibeTerminalBase {
       
       // Second fallback: just find the command anywhere
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes(command)) {
+        if (lines[i].includes(command) || lines[i].trim() === command) {
           // Get lines after the command, filtering out prompts
           const outputLines = lines.slice(i + 1).filter(line => {
+            // Also filter out lines that are just the command with escape chars
+            const cleanedLine = line.replace(/\x1B/g, '').trim();
             return !(line.match(/^%\s*$/) || 
                     line.match(/[%$#>]\s*$/) ||
                     (line.includes('@') && line.includes('%')) ||
                     line.includes('ehukaimedia@') ||
-                    line.trim() === '');
+                    line.trim() === '' ||
+                    cleanedLine === command);  // Filter out command echo
           });
           if (outputLines.length > 0) {
             return outputLines.join('\n').trim();
@@ -305,17 +344,23 @@ export class VibeTerminalMac extends VibeTerminalBase {
       }
       
       // Last resort: just remove obvious prompt lines
+      if (process.env.DEBUG_CLEAN) {
+        console.log('TEST MODE - Using last resort filter');
+      }
       const outputLines = lines.filter(line => {
+        const cleanedLine = line.replace(/\x1B/g, '').trim();
         return !(/^[%$#>]\s*$/.test(line) || 
                  (line.includes('@') && line.includes('%')) ||
-                 line.includes('ehukaimedia@'));
+                 line.includes('ehukaimedia@') ||
+                 cleanedLine === command ||  // Filter out command echo
+                 (line.includes('%') && line.includes(command)));  // Filter out prompt with command
       });
       
       return outputLines.join('\n').trim();
     }
     
     // Split by lines
-    let lines = rawOutput.split('\n');
+    let lines = cleaned.split('\n');
     
     // Remove known shell startup messages
     const shellMessages = [
@@ -342,6 +387,11 @@ export class VibeTerminalMac extends VibeTerminalBase {
         outputStartIndex = i + 1;
         break;
       }
+    }
+    
+    // Special case: if the first line is just the command (common in cleaned output)
+    if (outputStartIndex === -1 && lines.length > 0 && lines[0].trim() === command) {
+      outputStartIndex = 1;
     }
     
     // If we couldn't find the command echo and it's the first command, try to find output differently

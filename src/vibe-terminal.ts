@@ -27,10 +27,10 @@ export function createVibeTerminal(config?: TerminalConfig): VibeTerminal {
       // When PC implementation is ready, this would return new VibeTerminalPC(config)
       return new VibeTerminalMac(config) as any;
     case Platform.MAC:
-    case Platform.LINUX:
       return new VibeTerminalMac(config) as any;
     default:
-      return new VibeTerminalMac(config) as any;
+      // This should never happen as detectPlatform() throws for unsupported platforms
+      throw new Error(`Unexpected platform: ${platform}`);
   }
 }
 

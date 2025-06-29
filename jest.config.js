@@ -15,7 +15,18 @@ export default {
       },
     ],
   },
-  testMatch: ['<rootDir>/test/**/*.test.ts', '<rootDir>/test/**/*.spec.ts'],
+  // Dynamic platform-based test matching
+  testMatch: [
+    // Always run cross-platform tests
+    '<rootDir>/test/unit/**/*.test.ts',
+    '<rootDir>/test/integration/**/*.test.ts',
+    '<rootDir>/test/performance/**/*.test.ts',
+    '<rootDir>/test/fixtures/**/*.test.ts',
+    
+    // Platform-specific tests based on current OS
+    ...(process.platform === 'darwin' ? ['<rootDir>/test/mac/**/*.test.ts'] : []),
+    ...(process.platform === 'win32' ? ['<rootDir>/test/pc/**/*.test.ts'] : []),
+  ],
   testTimeout: 30000,
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -24,13 +35,5 @@ export default {
     '!src/test/**/*',
   ],
   modulePathIgnorePatterns: ['<rootDir>/dist/'],
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/dist/',
-    // Ignore Windows-specific test files
-    'windows.test.ts',
-    'win32.test.ts',
-    'powershell.test.ts',
-    'windows-compatibility.test.ts'
-  ],
+  // Remove testPathIgnorePatterns - using testMatch instead
 };

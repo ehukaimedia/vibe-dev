@@ -1,15 +1,15 @@
 export enum Platform {
   MAC = 'mac',
-  WINDOWS = 'windows',
-  LINUX = 'linux'
+  WINDOWS = 'windows'
+  // REMOVED: LINUX = 'linux'
 }
 
 export function detectPlatform(): Platform {
   switch (process.platform) {
     case 'darwin': return Platform.MAC;
     case 'win32': return Platform.WINDOWS;
-    case 'linux': return Platform.LINUX;
-    default: return Platform.LINUX;
+    default: 
+      throw new Error(`Unsupported platform: ${process.platform}. Vibe Dev only supports Mac and Windows.`);
   }
 }
 
@@ -21,6 +21,4 @@ export function isMac(): boolean {
   return process.platform === 'darwin';
 }
 
-export function isLinux(): boolean {
-  return process.platform === 'linux';
-}
+// REMOVED: isLinux() function
