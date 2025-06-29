@@ -20,14 +20,14 @@ describe('Mac Terminal', () => {
   });
   
   test('normalizes paths correctly', () => {
-    const normalized = terminal.normalizePath('~/test');
+    const normalized = terminal.testNormalizePath('~/test');
     expect(normalized).toMatch(/^\/Users/);
     expect(normalized).not.toContain('~');
   });
   
   test('handles absolute paths', () => {
     const path = '/usr/local/bin';
-    const normalized = terminal.normalizePath(path);
+    const normalized = terminal.testNormalizePath(path);
     expect(normalized).toBe(path);
   });
   
@@ -39,13 +39,13 @@ describe('Mac Terminal', () => {
     
     // Temporarily set shell type for testing
     (terminal as any).shellType = 'bash';
-    expect(terminal.isAtPrompt(bashPrompt)).toBe(true);
+    expect(terminal.testIsAtPrompt(bashPrompt)).toBe(true);
     
     (terminal as any).shellType = 'zsh';
-    expect(terminal.isAtPrompt(zshPrompt)).toBe(true);
+    expect(terminal.testIsAtPrompt(zshPrompt)).toBe(true);
     
     (terminal as any).shellType = 'fish';
-    expect(terminal.isAtPrompt(fishPrompt)).toBe(true);
+    expect(terminal.testIsAtPrompt(fishPrompt)).toBe(true);
   });
   
   test('cleans output correctly', () => {

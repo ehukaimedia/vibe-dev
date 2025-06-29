@@ -26,7 +26,7 @@ export class VibeTerminalPC extends VibeTerminalBase {
     throw new Error('PC implementation pending');
   }
   
-  isAtPrompt(output: string): boolean {
+  protected isAtPrompt(output: string): boolean {
     // TODO: Implement Windows prompt detection
     // PowerShell uses PS> or similar
     throw new Error('PC implementation pending');
@@ -35,6 +35,11 @@ export class VibeTerminalPC extends VibeTerminalBase {
   cleanOutput(rawOutput: string, command: string): string {
     // TODO: Fix command echo bug here
     // Windows has specific issues with command echo that need to be addressed
+    throw new Error('PC implementation pending');
+  }
+  
+  protected _cleanOutput(rawOutput: string, command: string): string {
+    // TODO: Implement Windows-specific output cleaning
     throw new Error('PC implementation pending');
   }
 }

@@ -1,5 +1,6 @@
 import * as pty from 'node-pty';
 import { randomUUID } from 'crypto';
+import { existsSync } from 'fs';
 import { 
   TerminalResult, 
   CommandRecord, 
@@ -53,9 +54,25 @@ export abstract class VibeTerminalBase {
   // Abstract methods for platform-specific operations
   abstract getDefaultShell(): string;
   abstract detectShellType(shellPath: string): SessionState['shellType'];
-  abstract normalizePath(path: string): string;
-  abstract cleanOutput(rawOutput: string, command: string): string;
-  abstract isAtPrompt(output: string): boolean;
+  protected abstract isAtPrompt(output: string): boolean;
+  protected abstract _cleanOutput(rawOutput: string, command: string): string;
+  
+  // Generic helper methods
+  protected fileExists(path: string): boolean {
+    try {
+      return existsSync(path);
+    } catch {
+      return false;
+    }
+  }
+  
+  // Basic path normalization (enhanced by platform classes)
+  protected normalizePath(path: string): string {
+    if (path.startsWith('~')) {
+      return path.replace('~', process.env.HOME || process.env.USERPROFILE || '');
+    }
+    return path;
+  }
   
   async execute(command: string): Promise<TerminalResult> {
     if (this.isExecuting) {
@@ -90,7 +107,7 @@ export abstract class VibeTerminalBase {
           // Extract working directory from output if it's a cd or pwd command
           if (command.trim() === 'pwd') {
             // pwd command - output is the directory
-            const pwdOutput = this.cleanOutput(commandOutput, command).trim();
+            const pwdOutput = this._cleanOutput(commandOutput, command).trim();
             if (pwdOutput && pwdOutput.startsWith('/')) {
               this.currentWorkingDirectory = pwdOutput;
             }
@@ -104,7 +121,7 @@ export abstract class VibeTerminalBase {
           
           const duration = Date.now() - startTime;
           const result: TerminalResult = {
-            output: this.cleanOutput(commandOutput, command),
+            output: this._cleanOutput(commandOutput, command),
             exitCode: this.extractExitCode(commandOutput),
             duration,
             sessionId: this.sessionId,
@@ -141,7 +158,7 @@ export abstract class VibeTerminalBase {
             // Still return what we have
             const duration = Date.now() - startTime;
             const result: TerminalResult = {
-              output: this.cleanOutput(commandOutput, command),
+              output: this._cleanOutput(commandOutput, command),
               exitCode: -1, // Timeout
               duration,
               sessionId: this.sessionId,
@@ -304,5 +321,9 @@ export abstract class VibeTerminalBase {
       console.error(`Vibe Terminal: Killing session ${this.sessionId}`);
       this.pty.kill();
     }
+  }
+  
+  destroy(): void {
+    this.kill();
   }
 }
