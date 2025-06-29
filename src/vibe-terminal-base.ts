@@ -148,26 +148,22 @@ export abstract class VibeTerminalBase {
       timeoutHandle = setTimeout(() => {
         if (!promptDetected) {
           timedOut = true;
-          // Send Ctrl+C to interrupt the running command
-          this.ptyProcess?.write('\x03');
+          // Don't send Ctrl+C - it contaminates the session
+          // Just return with timeout indicator
+          cleanup();
           
-          // Give it a moment to process the interrupt
-          setTimeout(() => {
-            cleanup();
-            
-            // Still return what we have
-            const duration = Date.now() - startTime;
-            const result: TerminalResult = {
-              output: this._cleanOutput(commandOutput, command),
-              exitCode: -1, // Timeout
-              duration,
-              sessionId: this.sessionId,
-              timestamp: new Date(),
-              command,
-              workingDirectory: this.currentWorkingDirectory
-            };
-            
-            this.commandHistory.push({
+          const duration = Date.now() - startTime;
+          const result: TerminalResult = {
+            output: this._cleanOutput(commandOutput, command),
+            exitCode: -1, // Timeout
+            duration,
+            sessionId: this.sessionId,
+            timestamp: new Date(),
+            command,
+            workingDirectory: this.currentWorkingDirectory
+          };
+          
+          this.commandHistory.push({
               timestamp: result.timestamp,
               command,
               output: result.output,
@@ -177,7 +173,6 @@ export abstract class VibeTerminalBase {
             });
             
             resolve(result);
-          }, 100); // Small delay to allow Ctrl+C to be processed
         }
       }, this.promptTimeout);
       
