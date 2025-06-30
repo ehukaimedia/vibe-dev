@@ -1,580 +1,308 @@
 # Vibe Dev - Gemini CLI Collaboration Guidelines
 
-## Working with Claude for Production Readiness
+## Leveraging Gemini CLI's Unique Strengths
 
-**🚨 CRITICAL: READ-ONLY COLLABORATION PROTOCOL 🚨**
+**🎯 PURPOSE: Windows Expertise & Cross-Platform Intelligence 🎯**
 
-Gemini CLI collaborates with Claude to make Vibe Dev production-ready, but with **strict boundaries**:
+While Claude Desktop is limited to Mac testing, Gemini CLI provides critical Windows insights and cross-platform perspective that Claude cannot access.
 
-### Gemini CLI Responsibilities (Windows Testing Only)
-- **Test Windows functionality** using the provided test suites
-- **Report test results** and identify failing cases
-- **Validate fixes** after Claude implements them
-- **Provide feedback** on Windows-specific issues
-- **NEVER modify production source code files**
+### Gemini CLI's Unique Value
+- **Windows System Expert**: Deep understanding of PowerShell, CMD, ConPTY, Windows paths
+- **Cross-Platform Tester**: Can run identical tests on Mac AND Windows to spot differences
+- **Fresh Architecture Perspective**: Independent code review and design feedback
+- **Real-World Windows Scenarios**: Testing across different Windows configurations
+- **Security & Performance Analyst**: Windows-specific vulnerabilities and bottlenecks
 
-### Claude's Responsibilities (All Development Work)
-- **Fix all production issues** on both Mac and Windows
-- **Implement all code changes** in `src/` directory
-- **Create and maintain tests** in `test/` directory
-- **Handle all architectural decisions**
-- **Commit and push changes**
+### Claude Desktop's Limitations
+- **Mac-only testing**: Cannot verify Windows behavior
+- **No Windows environment access**: Can't see PowerShell versions, Windows paths, etc.
+- **Single perspective**: May miss Windows-specific edge cases
+- **Limited system variety**: Only tests on one configuration
 
-## Testing Protocol for Gemini CLI
+## Collaboration Model 2.0
 
-### Cross-Platform Testing Approach
-Gemini CLI can run tests on BOTH Mac and PC platforms:
-- **On Windows**: Run tests AND update GEMINI_REPORTS.md with results
-- **On Mac**: Run tests for verification only (do NOT update reports)
+### 🔍 Gemini CLI as Windows Expert & Analyst
 
-### Running Tests (SAFE OPERATIONS on Both Platforms)
+#### 1. Windows-Specific Investigation
 ```bash
-# Install dependencies (safe - no source code changes)
-npm install
+# Don't just run tests - investigate Windows behavior
+Get-Command npm | Select-Object -Property *  # Why is PATH not working?
+$env:Path -split ';' | Where-Object {$_ -like "*npm*"}  # Is npm in PATH?
+[System.Environment]::GetEnvironmentVariable("Path", "Machine")  # System PATH
+[System.Environment]::GetEnvironmentVariable("Path", "User")     # User PATH
 
-# Build the project (safe - creates dist/ files only)
-npm run build
-
-# Verify build completed successfully (safe)
-npm run test:build
-
-# Run Windows parser test (NEW - tests VIBE_EXIT_CODE fix)
-node test/windows-parser-test.mjs
-
-# Run cross-platform test (works on both Mac and PC)
-node test/integration/cross-platform/gemini-test.mjs
-
-# Platform-specific tests
-npm run test:windows    # Windows-specific test
-npm run test:mac        # Mac-specific test (for verification only)
-
-# Check TypeScript compilation (safe)
-npm run typecheck
-
-# Report results back to Claude for fixes (Windows results only)
+# Test different shells
+powershell.exe -Command "echo $PSVersionTable"
+pwsh.exe -Command "echo $PSVersionTable"  # PowerShell Core
+cmd.exe /c "echo %PATH%"
 ```
 
-### Test Files for Gemini CLI
-- `test/windows-parser-test.mjs` - Windows parser test (NEW - tests VIBE_EXIT_CODE removal)
-- `test/integration/cross-platform/gemini-test.mjs` - Cross-platform test (run on both Mac/PC)
-- `test/integration/windows/windows.test.mjs` - Windows-specific functionality test
-- `test/integration/mac/production.test.mjs` - Mac test (for verification only)
-- Build verification through `npm run build` and `npm run test:build`
+#### 2. Cross-Platform Comparison Testing
+```bash
+# Run on BOTH Mac and Windows, then compare:
+npm run test:gemini
 
-### Expected Test Results (After Claude's Latest Fixes - June 30 Evening)
-Gemini CLI should now see these specific improvements:
-- **NO MORE VIBE_EXIT_CODE in output** - Parser has been fixed
-- **node-pty is now mandatory** - No more child_process fallback
-- **Clear error messages** if node-pty is missing
-- **Windows parser test** should show 4/5 or 5/5 tests passing
-- **Cleaner output** without exit code artifacts
+# Document differences:
+# - Timing differences (Mac: 15ms, Windows: 200ms - why?)
+# - Output formatting variations
+# - Error message differences
+# - Path handling discrepancies
+```
 
-**Known Remaining Issue**: PATH environment not inherited - git/npm/node commands will fail
+#### 3. Windows Edge Case Discovery
+- Test with non-admin users
+- Long path names (>260 chars)
+- UNC paths (`\\server\share`)
+- Special characters in paths
+- Different Windows versions (10, 11, Server)
+- Various terminals (Windows Terminal, ConEmu, default console)
 
-### Reporting Requirements for Gemini CLI
+#### 4. Architecture & Design Feedback
+- Review code from Windows perspective
+- Suggest Windows-optimized approaches
+- Identify potential Windows security issues
+- Propose alternative implementations
 
-**IMPORTANT**: Gemini CLI has two documentation files:
+### 📊 Enhanced Reporting Structure
 
-📁 **For Test Results** (Windows only):
-`/docs/gemini-handoffs/GEMINI_REPORTS.md`
-- Update ONLY when testing on Windows PC
-- Contains test execution results and performance metrics
-- Replace previous report with current findings
-
-📁 **For Technical Analysis** (Both Mac and PC):
-`/docs/gemini-handoffs/GEMINI_ANALYSIS.md`
-- Update on EITHER Mac or PC
-- Contains code review and architecture analysis
-- Platform-agnostic observations and recommendations
-
-**Replace the previous report** with your current findings using this template:
+Instead of just test results, provide **analytical insights**:
 
 ```markdown
-# Gemini CLI Test Report - [Current Date]
+# Gemini CLI Analysis Report - [Date]
 
-## Environment Details
-- **Platform**: Windows [Version] (e.g., Windows 11 22H2)
-- **Node.js**: [Version] (from `node --version`)
-- **Shell**: [PowerShell/CMD version]
-- **Terminal**: [Windows Terminal/CMD/PowerShell/Other]
+## Executive Summary
+- **Key Finding**: PATH inheritance fails because [root cause analysis]
+- **Platform Differences**: [Specific behavioral differences discovered]
+- **Security Concerns**: [Windows-specific vulnerabilities identified]
+- **Performance Analysis**: [Why Windows is slower, with evidence]
 
-## Build Verification Results
+## Windows-Specific Investigation
 
-### TypeScript Compilation
-```bash
-npm run build
+### PATH Inheritance Root Cause
+```powershell
+# Commands used to investigate
+[Environment]::GetEnvironmentVariable("Path", "Process")
+# Result: [What you found]
 ```
-**Result**: [✅ Success / ❌ Failed]
-**Output**: [Any errors or warnings]
+**Analysis**: The issue occurs because...
+**Recommendation**: Consider using...
 
-### Type Checking
-```bash
-npm run typecheck  
-```
-**Result**: [✅ Success / ❌ Failed]
-**Output**: [Any type errors]
+### PowerShell vs CMD Behavior
+[Detailed comparison of how commands behave differently]
 
-## Windows Functionality Testing
+### ConPTY vs Legacy Console
+[Performance and compatibility differences observed]
 
-### Windows Parser Test (NEW - Test This First!)
-```bash
-node test/windows-parser-test.mjs
-```
+## Cross-Platform Comparison
 
-**Expected Output:**
-```
-🧪 Testing Windows Output Parser Fix...
+| Aspect | Mac Result | Windows Result | Analysis |
+|--------|------------|----------------|----------|
+| Command Echo | Clean | Has artifacts | Windows because... |
+| Performance | 15ms | 200ms | Slower due to... |
+| Path Handling | Unix-style | Drive letters | Causes issues when... |
 
-✅ PowerShell echo with exit code
-✅ CMD echo with exit code
-✅ Output on same line as exit code
-✅ Error message with EXITCODE substring
-✅ Empty output with exit code only
+## Architecture Feedback
 
-📊 Results: 5 passed, 0 failed
-```
+### Current Approach Issues
+1. **Problem**: Using X approach doesn't work well on Windows because...
+2. **Evidence**: [Specific examples]
+3. **Alternative**: Consider Y approach which would...
 
-**What This Tests:**
-- VIBE_EXIT_CODE patterns are properly removed from output
-- Exit codes on same line as output are handled
-- PowerShell and CMD patterns work correctly
-- Error messages containing "EXITCODE" are preserved
-
-### Test Execution Results
-```bash
-npm run test:windows
-```
-
-**Copy all console output here, especially lines starting with "GEMINI REPORT:"**
-
-### Key Metrics Observed
-- **Average Command Duration**: [X]ms (Target: <2000ms)
-- **Timeout Rate**: [X]% (Target: 0%)
-- **Commands with Exit Code -1**: [X] (Target: 0)
-- **Successful Commands**: [X]
-
-### Specific Test Results
-
-#### Echo Command Test
-- **Expected**: Clean output "test", exit code 0, <2000ms duration
-- **Actual**: [What you observed]
-- **Status**: [✅ Pass / ❌ Fail / ⚠️ Partial]
-
-#### Working Directory Test  
-- **Expected**: Directory changes persist across commands
-- **Actual**: [What you observed]
-- **Status**: [✅ Pass / ❌ Fail / ⚠️ Partial]
-
-#### Shell Detection Test
-- **Expected**: Correct shell type detection
-- **Actual**: [What shell type was detected]
-- **Status**: [✅ Pass / ❌ Fail / ⚠️ Partial]
-
-## Issues Identified
-
-### Critical Issues (Block Production)
-1. [Issue description]
-   - **Impact**: [How it affects functionality]
-   - **Evidence**: [Console output/error messages]
-
-### Performance Issues
-1. [Issue description]
-   - **Measured**: [Actual performance]
-   - **Target**: [Expected performance]
-
-### Output Quality Issues
-1. [Issue description]
-   - **Expected**: [Clean output without artifacts]
-   - **Actual**: [What was observed]
-
-## Comparison with Previous Status
-
-### Improvements Since Last Report
-- [List any improvements over the previous report]
-
-### Remaining Issues
-- [Issues that still need Claude's attention]
+### Security Considerations
+1. **Windows-specific vulnerability**: [Description]
+2. **Attack vector**: [How it could be exploited]
+3. **Mitigation**: [Recommended fix]
 
 ## Recommendations for Claude
 
-### High Priority Fixes Needed
-1. [Specific issue requiring immediate attention]
-2. [Another critical issue]
+### High Priority Windows Fixes
+1. **PATH Inheritance**: 
+   - Root cause: [Your investigation findings]
+   - Suggested fix: [Specific implementation approach]
+   - Code example: [Pseudocode or pattern]
 
-### Performance Optimizations
-1. [Performance improvement suggestions]
+2. **Performance Optimization**:
+   - Bottleneck identified: [Where and why]
+   - Windows-specific solution: [What would work better]
 
-### Overall Assessment
-**Production Readiness**: [Ready/Needs Work/Not Ready]
-**Confidence Level**: [High/Medium/Low]
-**Recommendation**: [Deploy/Fix Issues First/Major Rework Needed]
+### Design Improvements
+[Architectural changes that would benefit Windows]
 
----
-**Report Generated**: [Date and Time]
-**Next Test Date**: [When you plan to test again]
+## Test Results (Supporting Evidence)
+
+[Include actual test outputs that support your analysis]
 ```
 
-### How to Update the Report File
+## Investigation Areas for Gemini CLI
 
-1. **Navigate to**: `/docs/gemini-handoffs/GEMINI_REPORTS.md`
-2. **Replace entire contents** with your new report using the template above
-3. **Include all console outputs** from your test runs
-4. **Be specific** about what works vs. what doesn't
-5. **Provide actionable feedback** for Claude to implement fixes
+### 1. PATH Environment Mystery
+```powershell
+# Why isn't PATH inherited? Investigate:
+$env:Path
+Get-Process -Id $PID | Select-Object -ExpandProperty Path
+Get-Command node-pty | Select-Object -ExpandProperty Source
 
-## Building and Testing Operations
+# Test with explicit PATH
+$env:Path = "C:\Program Files\nodejs;$env:Path"
+node -v  # Does this work now?
+```
 
-### ✅ SAFE for Gemini CLI (Build & Test Operations)
-These commands are **SAFE** - they don't modify source code:
+### 2. PowerShell Profile Loading
+```powershell
+# Is the profile affecting PATH?
+Test-Path $PROFILE
+Get-Content $PROFILE
+powershell.exe -NoProfile -Command "echo $env:Path"
+```
+
+### 3. ConPTY Behavior Analysis
+```powershell
+# Check ConPTY support
+[System.Environment]::OSVersion.Version
+Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -Name ReleaseId
+
+# Test with different PTY settings
+# Document behavior differences
+```
+
+### 4. Performance Profiling
+- Why are Windows commands slower?
+- Is it PTY overhead or shell startup?
+- Profile specific bottlenecks
+- Compare PowerShell vs CMD performance
+
+## Gemini CLI Action Items
+
+### Phase 1: Investigate (Don't Just Test)
+1. **Root Cause Analysis**: Why is PATH not inherited?
+2. **Performance Profiling**: Where is the 200ms going?
+3. **Shell Comparison**: PowerShell vs CMD vs PowerShell Core
+4. **Environment Analysis**: How Windows handles process inheritance
+
+### Phase 2: Cross-Platform Intelligence
+1. **Run identical tests** on Mac and Windows
+2. **Document ALL differences**, not just pass/fail
+3. **Analyze WHY** differences occur
+4. **Propose platform-specific optimizations**
+
+### Phase 3: Windows Expertise
+1. **Test edge cases** Claude can't imagine on Mac
+2. **Leverage Windows knowledge** for better solutions
+3. **Suggest Windows-native approaches** where appropriate
+4. **Identify security implications** specific to Windows
+
+### Phase 4: Architectural Review
+1. **Code review** from fresh perspective
+2. **Design feedback** based on cross-platform experience
+3. **Alternative approaches** that might work better
+4. **Future-proofing** for Windows changes
+
+## What Claude Needs From Gemini
+
+### Not Just Test Results, But:
+1. **Root cause analysis** of Windows issues
+2. **Specific code changes** that would fix problems
+3. **Performance bottleneck identification**
+4. **Security vulnerability assessment**
+5. **Architecture improvement suggestions**
+6. **Windows-specific edge cases** to handle
+
+### Example of High-Value Feedback:
+```markdown
+"The PATH issue occurs because node-pty on Windows creates a new 
+process without inheriting the parent environment. Here's proof:
+[PowerShell investigation commands and results]
+
+Suggested fix: Pass explicit env to PTY spawn options:
+```javascript
+const env = {
+  ...process.env,
+  Path: process.env.Path || process.env.PATH,
+  PATHEXT: process.env.PATHEXT || '.COM;.EXE;.BAT;.CMD'
+};
+```
+
+This would ensure PATH inheritance because..."
+```
+
+## Updated Collaboration Protocol
+
+### Gemini CLI Can:
+- ✅ **Investigate** Windows behavior deeply
+- ✅ **Write test proposals** (not code) for Claude to implement
+- ✅ **Suggest code fixes** as recommendations
+- ✅ **Provide pseudocode** and architectural guidance
+- ✅ **Document findings** in GEMINI_ANALYSIS.md
+- ✅ **Compare platforms** to identify differences
+
+### Gemini CLI Cannot:
+- ❌ Modify source code in `src/`
+- ❌ Create test files in `test/`
+- ❌ Commit or push changes
+- ❌ Make architectural decisions (only recommend)
+
+### Claude Will:
+- Implement all code changes based on Gemini's findings
+- Create tests based on Gemini's test proposals
+- Make final architectural decisions
+- Handle all commits and deployment
+
+## Quick Start for Windows Investigation
 
 ```bash
-npm install        # Install dependencies
-npm run build      # Build the project (creates dist/ files)
-npm run typecheck  # Type checking verification
-npm run test:build # Build verification
-npm test           # Run production tests
-npm run test:windows # Windows-specific tests
-```
-
-### ❌ FORBIDDEN for Gemini CLI (Development Operations)
-These commands modify source code and are **FORBIDDEN**:
-
-```bash
-# DO NOT RUN THESE - Source code modification
-npm run dev        # Development mode with file watching
-# Any editing of files in src/ directory
-# Any git commits or pushes
-```
-
-## Current Project Status
-
-### ✅ Completed (By Claude - Updated June 30 Evening)
-- Mac platform fully functional (no command echo, clean output, fast performance)
-- Comprehensive test suite structure created
-- TDD workflow documented
-- Exit code detection improved
-- Prompt detection enhanced
-- Windows PTY integration fixes implemented
-- **NEW: Fixed VIBE_EXIT_CODE appearing in output**
-- **NEW: Made node-pty mandatory (no fallback)**
-- **NEW: Added Windows parser test suite**
-
-### 🔄 In Progress
-- Windows testing and validation (Gemini CLI's role)
-
-### 📋 Testing Framework
-
-The project now uses **Jest** as its testing framework. Key conventions:
-
-### Test Structure and Framework (For Reference Only)
-
-- **Framework**: All tests use Jest (`describe`, `test`, `expect`)
-- **File Location**: Tests are in `test/` directory with platform-specific subdirectories
-- **Mac Tests**: `test/integration/mac/` (Claude maintains and runs)
-- **Windows Tests**: `test/integration/windows/` (Gemini CLI runs, Claude maintains)
-- **Unit Tests**: `test/unit/` (Claude maintains and runs)
-
-### Mocking (For Reference Only)
-
-- **ES Modules**: Mock with `jest.mock('module-name')`
-- **Mock Functions**: Create with `jest.fn()`
-- **Spying**: Use `jest.spyOn(object, 'methodName')`
-
-### Commonly Tested Areas
-
-- **Cross-platform compatibility**: Mac vs Windows behavior
-- **Shell detection**: PowerShell, CMD, Bash variants
-- **Command execution**: Echo, pwd, cd, environment variables
-- **Session persistence**: Directory changes, environment variables
-- **Output parsing**: Clean output without command echo or control characters
-- **Performance**: Sub-second response times for basic commands
-
-## Git Repo
-
-The main branch for this project is called "main"
-
-## TypeScript/JavaScript Guidelines
-
-### Core Principles
-- Use functional programming patterns over classes
-- Prefer plain objects with TypeScript interfaces
-- Leverage ES module syntax for encapsulation
-- Avoid `any` types, prefer `unknown` when needed
-- Use array operators (.map, .filter, .reduce) for immutable operations
-
-### ES Module Encapsulation
-```typescript
-// Good: Clear public/private API through exports
-export interface TerminalResult {
-  output: string;
-  exitCode: number;
-}
-
-// Private implementation details (not exported)
-function parseOutput(raw: string): string {
-  // Implementation details
-}
-
-// Public API
-export function executeCommand(cmd: string): TerminalResult {
-  // Uses private functions internally
-}
-```
-
-### Type Safety
-```typescript
-// Good: Using unknown for type-safe handling
-function processValue(value: unknown) {
-  if (typeof value === 'string') {
-    console.log(value.toUpperCase()); // Safe string operation
-  }
-}
-
-// Avoid: Using any (loses type safety)
-function processAny(value: any) {
-  console.log(value.anything()); // No type checking
-}
-```
-
-## Platform-Specific Implementation
-
-### Architecture Overview
-The project uses a factory pattern for platform-specific implementations:
-
-```
-src/
-├── vibe-terminal-base.ts      # Shared logic
-├── vibe-terminal-mac.ts       # Mac-specific implementation
-├── vibe-terminal-pc.ts        # Windows-specific implementation
-├── pty-adapter.ts             # PTY abstraction layer
-└── intelligent-output-parser.ts # Cross-platform output cleaning
-```
-
-### Platform Detection
-```typescript
-// Factory creates appropriate platform instance
-export function createVibeTerminal(config?: TerminalConfig): VibeTerminalBase {
-  const platform = process.platform;
-  
-  if (platform === 'darwin') {
-    return new VibeTerminalMac(config);
-  } else if (platform === 'win32') {
-    return new VibeTerminalPC(config);
-  }
-  
-  throw new Error(`Unsupported platform: ${platform}`);
-}
-```
-
-## Testing Strategy
-
-### Test Categories
-
-1. **Unit Tests** (`test/unit/`)
-   - Output parser logic
-   - Path normalization
-   - Shell detection
-   - Exit code extraction
-
-2. **Integration Tests** (`test/integration/`)
-   - **Mac** (`mac/`) - Full terminal session tests
-   - **Windows** (`windows/`) - Platform-specific tests (Gemini CLI focus)
-   - **Cross-platform** (`cross-platform/`) - Shared behavior tests
-
-3. **Performance Tests**
-   - Command execution speed
-   - Session persistence efficiency
-   - Memory usage
-
-### Complete Testing Workflow for Gemini CLI
-
-**Step 1: Environment Setup**
-```bash
-npm install          # Install all dependencies
-npm run build        # Build the project from TypeScript
-npm run typecheck    # Verify TypeScript compilation
-```
-
-**Step 2: Build Verification**
-```bash
-npm run test:build   # Verify build completed successfully
-```
-
-**Step 3: Windows Functionality Testing**
-```bash
-npm run test:windows # Run comprehensive Windows tests
-npm test            # Run cross-platform production tests
-```
-
-**Step 4: Report Results**
-Use the reporting template below with all findings.
-
-### Critical Test Areas to Verify
-
-**Windows Command Execution:**
-- Basic commands (echo, pwd, dir, cd)
-- PowerShell vs CMD compatibility
-- Session persistence across commands
-- Environment variable handling
-
-**Output Quality:**
-- No command echo in output
-- Clean removal of PowerShell banners
-- Proper handling of Windows path formats
-- Control character stripping
-
-**Performance Benchmarks:**
-- Commands complete within 2 seconds
-- No timeouts (exit code should not be -1)
-- Session state properly maintained
-
-**Build System:**
-- TypeScript compilation successful
-- All distribution files created
-- No build errors or warnings
-
-## Error Handling
-
-### Common Windows Issues to Test For
-- ConPTY support detection
-- PowerShell version compatibility
-- Administrator privilege requirements
-- Windows path handling (drive letters, UNC paths)
-- Line ending normalization (CRLF vs LF)
-
-### Exit Code Mapping
-```typescript
-// Windows-specific error patterns
-const windowsErrorPatterns = [
-  'is not recognized',           // CMD command not found
-  'The system cannot find',      // File/path not found
-  'Access is denied',            // Permission error
-  'The process cannot access',   // File in use
-];
-```
-
-## Memory and Performance
-
-### Optimization Guidelines
-- Use streaming for large output
-- Clean up PTY processes properly
-- Avoid memory leaks in event listeners
-- Implement proper timeout handling
-
-### Resource Management
-```typescript
-// Proper cleanup pattern
-export class VibeTerminal {
-  destroy(): void {
-    if (this.ptyProcess) {
-      this.ptyProcess.kill();
-      this.ptyProcess = null;
-    }
-  }
-}
-```
-
-## Security Considerations
-
-### Input Validation
-- Sanitize shell commands
-- Prevent command injection
-- Handle untrusted input safely
-- Validate file paths
-
-### Process Isolation
-- Run with minimal privileges
-- Avoid shell expansion of user input
-- Use parameterized commands when possible
-
-## Comments Policy
-
-Only write high-value comments if at all. Avoid talking to the user through comments. Let the code and types speak for themselves.
-
----
-
-## Quick Start for Gemini CLI
-
-### Complete Testing Workflow
-```bash
-# 1. Setup (on both Mac and PC)
+# 1. Clone and setup
+git clone [repo]
 npm install
 npm run build
-npm run typecheck
 
-# 2. Test the Parser Fix First (NEW)
-node test/windows-parser-test.mjs  # Should show 4/5 or 5/5 passing
+# 2. Investigate PATH issue
+powershell
+> $env:Path -split ';' | Select-String "node|npm|git"
+> Get-Command npm -ErrorAction SilentlyContinue
+> Get-Process -Id $PID | Select Path
 
-# 3. Test Full Functionality (on both Mac and PC)
-npm run test:gemini    # Cross-platform test - works on both platforms
-npm run test:windows   # Windows-specific test (when on PC)
-npm test              # Production test
+# 3. Test in different shells
+> powershell.exe -NoProfile -Command "npm -v"
+> cmd.exe /c "npm -v"
+> pwsh.exe -Command "npm -v"
 
-# 4. Report (ONLY when testing on PC)
-# Edit /docs/gemini-handoffs/GEMINI_REPORTS.md with Windows findings
-# Mac tests are for verification only - don't update reports
+# 4. Profile performance
+> Measure-Command { node test/windows-parser-test.mjs }
+
+# 5. Document findings in GEMINI_ANALYSIS.md
 ```
 
-### Report File Location
-📁 **File to Update**: `/docs/gemini-handoffs/GEMINI_REPORTS.md`
-- Replace previous content completely
-- Use the markdown template provided above
-- Include all console outputs and test results
-- Save the file after completing your analysis
+## Expected Deliverables from Gemini CLI
 
-### What Claude Needs to Know
-- **Build Status**: Did TypeScript compile successfully?
-- **Test Results**: Which tests passed/failed and why?
-- **Performance Data**: Actual vs. target command execution times
-- **Console Outputs**: All "GEMINI REPORT:" messages from tests
-- **Specific Issues**: Detailed descriptions of any problems found
-- **Comparison**: How current results compare to previous report findings
+### 1. Root Cause Analysis Document
+- Why PATH inheritance fails (with evidence)
+- Performance bottleneck identification
+- Platform behavioral differences
+- Security considerations
 
-### Report Quality Expectations
-✅ **Good Report**:
-- Complete console outputs pasted verbatim
-- Specific performance numbers (e.g., "2347ms" not "slow")
-- Clear pass/fail status for each test area
-- Comparison to previous 100% timeout issues
-- Actionable recommendations for Claude
+### 2. Test Proposals (Not Implementations)
+```markdown
+Proposed Test: Windows PATH Inheritance
+- Purpose: Verify PATH is properly inherited in PTY sessions
+- Method: Spawn PTY, check if npm/git are accessible
+- Expected: Commands should work
+- Actual: Currently fail with "not recognized"
+- Fix validation: After fix, commands should succeed
+```
 
-❌ **Poor Report**:
-- Vague descriptions ("didn't work well")
-- Missing console outputs
-- No performance measurements
-- No comparison to previous issues
-- Generic feedback without specifics
+### 3. Architecture Recommendations
+- Current approach limitations
+- Windows-optimized alternatives
+- Cross-platform compatibility considerations
+- Future-proofing suggestions
+
+### 4. Windows Edge Case Catalog
+- Scenarios that need testing
+- Windows-specific quirks to handle
+- Version-specific behaviors
+- Corporate environment considerations
 
 ---
 
-## 📁 Documentation Structure for Gemini CLI
-
-### GEMINI_REPORTS.md (Windows Test Results Only)
-- **When**: Update ONLY when testing on Windows PC
-- **What**: Test execution results, performance metrics, bug reports
-- **Format**: Structured test report template
-- **Purpose**: Track Windows-specific issues and improvements
-
-### GEMINI_ANALYSIS.md (Cross-Platform Analysis)
-- **When**: Update on EITHER Mac or PC
-- **What**: Code review, architecture analysis, security observations
-- **Format**: Technical analysis sections
-- **Purpose**: Platform-agnostic technical insights and recommendations
-
-### Usage Examples
-```bash
-# On Windows PC:
-npm run test:gemini
-# → Update GEMINI_REPORTS.md with results
-# → Optionally update GEMINI_ANALYSIS.md with code observations
-
-# On Mac:
-npm run test:gemini
-# → Do NOT update GEMINI_REPORTS.md (verification only)
-# → Can update GEMINI_ANALYSIS.md with technical analysis
-```
-
----
-
-**🎯 Key Takeaway for Gemini CLI:**
-Your role is to **test, measure, analyze, and report**, not to **fix or modify**. Run tests, analyze code quality, document findings in the appropriate file, and provide detailed feedback to Claude. Claude handles all the actual development work to make the fixes.
+**🎯 New Mission for Gemini CLI:**
+Don't just run tests - be the Windows expert that helps Claude understand and solve Windows-specific challenges through investigation, analysis, and architectural guidance.
