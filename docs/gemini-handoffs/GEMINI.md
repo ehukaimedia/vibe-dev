@@ -247,29 +247,68 @@ This would ensure PATH inheritance because..."
 - Make final architectural decisions
 - Handle all commits and deployment
 
+## Quick Reference: NPM Commands
+
+### Build Commands
+```bash
+npm install              # Install dependencies (including node-pty)
+npm run build           # Build TypeScript → JavaScript
+npm run build:clean     # Clean build (removes dist/ first)
+npm run typecheck       # TypeScript type checking only
+npm run test:build      # Verify build completed successfully
+```
+
+### Test Commands
+```bash
+# Parser test (test VIBE_EXIT_CODE fix)
+node test/windows-parser-test.mjs
+
+# Cross-platform test (primary test for both Mac/Windows)
+npm run test:gemini     # Runs: node test/integration/cross-platform/gemini-test.mjs
+
+# Platform-specific tests
+npm run test:windows    # Windows-specific test suite
+npm run test:mac        # Mac production test
+npm test               # Default test (Mac production)
+
+# Unit tests (when implemented)
+npm run test:unit       # Run unit test suite
+```
+
+### Development Commands (Reference only - don't use)
+```bash
+npm run dev            # Watch mode (modifies files - DON'T USE)
+npm start             # Start the MCP server
+```
+
 ## Quick Start for Windows Investigation
 
 ```bash
 # 1. Clone and setup
-git clone [repo]
+git clone https://github.com/ehukaimedia/vibe-dev.git
+cd vibe-dev
 npm install
 npm run build
 
-# 2. Investigate PATH issue
+# 2. Verify tests are available
+npm run test:gemini     # Should run cross-platform test
+node test/windows-parser-test.mjs  # Should show 5/5 passing
+
+# 3. Investigate PATH issue
 powershell
 > $env:Path -split ';' | Select-String "node|npm|git"
 > Get-Command npm -ErrorAction SilentlyContinue
 > Get-Process -Id $PID | Select Path
 
-# 3. Test in different shells
+# 4. Test in different shells
 > powershell.exe -NoProfile -Command "npm -v"
 > cmd.exe /c "npm -v"
 > pwsh.exe -Command "npm -v"
 
-# 4. Profile performance
+# 5. Profile performance
 > Measure-Command { node test/windows-parser-test.mjs }
 
-# 5. Document findings in GEMINI_ANALYSIS.md
+# 6. Document findings in GEMINI_ANALYSIS.md
 ```
 
 ## Expected Deliverables from Gemini CLI
