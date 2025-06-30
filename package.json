@@ -5,18 +5,24 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "vibe-dev": "./dist/src/index.js"
+    "vibe-dev": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "prebuild": "npm run clean",
+    "build": "tsc -p tsconfig.build.json",
+    "build:dev": "tsc",
+    "postbuild": "node scripts/post-build.js",
     "dev": "tsc --watch",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
     "test:ci": "cross-env CI=true NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --detectOpenHandles",
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
-    "clean": "rm -rf dist",
-    "start": "node dist/src/index.js",
+    "clean": "rm -rf dist coverage",
+    "start": "node dist/index.js",
     "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
-    "test:validate": "node scripts/test/validate-organization.js"
+    "test:validate": "node scripts/test/validate-organization.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit && node scripts/lint.js",
+    "prepare": "npm run build"
   },
   "keywords": [
     "vibe-dev",

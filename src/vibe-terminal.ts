@@ -1,7 +1,7 @@
 import { VibeTerminalMac } from './vibe-terminal-mac.js';
 import { VibeTerminalPC } from './vibe-terminal-pc.js';
 import { detectPlatform, Platform } from './os-detector.js';
-import { 
+import type { 
   TerminalConfig,
   TerminalResult, 
   CommandRecord, 

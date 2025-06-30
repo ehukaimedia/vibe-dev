@@ -71,7 +71,7 @@ class ChildProcessAdapter implements IPtyAdapter {
     this.process.kill();
   }
   
-  resize(cols: number, rows: number): void {
+  resize(_cols: number, _rows: number): void {
     // Not supported in child_process, but won't break
   }
   

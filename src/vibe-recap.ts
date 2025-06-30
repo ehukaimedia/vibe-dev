@@ -1,5 +1,6 @@
 import { getTerminal } from './vibe-terminal.js';
-import { VibeRecapArgsSchema, SessionState, CommandRecord } from './types.js';
+import { VibeRecapArgsSchema } from './types.js';
+import type { SessionState, CommandRecord } from './types.js';
 import { z } from 'zod';
 
 type RecapArgs = z.infer<typeof VibeRecapArgsSchema>;
@@ -81,7 +82,9 @@ function generateSummaryRecap(sessionState: SessionState, history: CommandRecord
   history.forEach(cmd => {
     const baseCommand = cmd.command.split(' ')[0];
     commandTypes.set(baseCommand, (commandTypes.get(baseCommand) || 0) + 1);
-    directories.add(cmd.workingDirectory);
+    if (cmd.workingDirectory) {
+      directories.add(cmd.workingDirectory);
+    }
     if (cmd.exitCode !== 0) errorCount++;
     totalDuration += cmd.duration;
   });
@@ -288,7 +291,7 @@ function generateNextSteps(history: CommandRecord[], sessionState: SessionState)
   
   // Check last few commands for context
   const recent = history.slice(-5);
-  const lastCommand = recent[recent.length - 1];
+  const lastCommand = recent[recent.length - 1] as CommandRecord | undefined;
   
   // If last command failed, suggest fix
   if (lastCommand && lastCommand.exitCode !== 0) {

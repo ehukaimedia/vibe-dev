@@ -1,7 +1,8 @@
 import { randomUUID } from 'crypto';
 import { existsSync } from 'fs';
-import { createPtyAdapter, IPtyAdapter } from './pty-adapter.js';
-import { 
+import { createPtyAdapter } from './pty-adapter.js';
+import type { IPtyAdapter } from './pty-adapter.js';
+import type { 
   TerminalResult, 
   CommandRecord, 
   SessionState, 

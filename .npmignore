@@ -1,0 +1,38 @@
+# Source files
+src/
+test/
+scripts/
+
+# Test files in dist
+dist/**/*.test.js
+dist/**/*.test.d.ts
+dist/**/*.test.js.map
+dist/**/*.spec.js
+dist/**/*.spec.d.ts
+dist/**/*.spec.js.map
+dist/test/
+
+# Configuration files
+tsconfig.json
+tsconfig.build.json
+jest.config.*
+.gitignore
+.github/
+
+# Development files
+coverage/
+.vscode/
+.idea/
+*.log
+.DS_Store
+node_modules/
+
+# Documentation source
+docs/
+*.md
+!README.md
+
+# Build artifacts
+*.tsbuildinfo
+.env
+.env.*

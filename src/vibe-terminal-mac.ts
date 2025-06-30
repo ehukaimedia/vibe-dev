@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { SessionState, TerminalConfig } from './types.js';
+import type { SessionState, TerminalConfig } from './types.js';
 import { VibeTerminalBase } from './vibe-terminal-base.js';
 
 export class VibeTerminalMac extends VibeTerminalBase {

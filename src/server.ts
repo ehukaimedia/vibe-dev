@@ -4,8 +4,8 @@ import {
   ListToolsRequestSchema,
   ListResourcesRequestSchema,
   ListPromptsRequestSchema,
-  CallToolRequest,
 } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolRequest } from "@modelcontextprotocol/sdk/types.js";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { VibeTerminalArgsSchema, VibeRecapArgsSchema } from './types.js';
 import { executeTerminalCommand } from './vibe-terminal.js';
