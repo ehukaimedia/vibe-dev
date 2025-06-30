@@ -13,6 +13,8 @@ export abstract class VibeTerminalBase {
   protected ptyProcess: IPtyAdapter | null = null;
   protected sessionId: string;
   protected output: string = '';
+  protected recentOutputs: string[] = []; // Keep recent command outputs
+  protected maxRecentOutputs: number = 50; // Keep last 50 command outputs
   protected commandHistory: CommandRecord[] = [];
   protected currentWorkingDirectory: string;
   protected startTime: Date;
@@ -83,12 +85,15 @@ export abstract class VibeTerminalBase {
     this.isExecuting = true;
     const startTime = Date.now();
     
+    // Wrap command with exit code detection
+    const wrappedCommand = this.wrapCommandWithExitCode(command);
+    
     const resultPromise = new Promise<TerminalResult>((resolve, reject) => {
       let commandOutput = '';
       let promptDetected = false;
       let timedOut = false;
       let timeoutHandle: NodeJS.Timeout;
-      let lastExitCode = 0; // Track actual exit code
+      let detectedExitCode: number | null = null;
       
       const cleanup = () => {
         this.isExecuting = false;
@@ -97,7 +102,7 @@ export abstract class VibeTerminalBase {
       
       const onData = (data: string) => {
         commandOutput += data;
-        this.output += data; // Keep full session history
+        // Don't accumulate in this.output during command execution
         
         // Check for prompt with improved detection
         if (this.isAtPrompt(commandOutput) && !timedOut) {
@@ -121,8 +126,8 @@ export abstract class VibeTerminalBase {
           
           const duration = Date.now() - startTime;
           
-          // Use better exit code detection
-          const exitCode = this.getActualExitCode(commandOutput, command, lastExitCode);
+          // Use detected exit code or fall back to heuristics
+          const exitCode = detectedExitCode !== null ? detectedExitCode : this.getActualExitCode(commandOutput, command, 0);
           
           const result: TerminalResult = {
             output: this._cleanOutput(commandOutput, command),
@@ -143,6 +148,15 @@ export abstract class VibeTerminalBase {
             duration,
             workingDirectory: this.currentWorkingDirectory
           });
+          
+          // Store recent output for session reconstruction
+          this.recentOutputs.push(commandOutput);
+          if (this.recentOutputs.length > this.maxRecentOutputs) {
+            this.recentOutputs.shift(); // Remove oldest output
+          }
+          
+          // Rebuild session output from recent commands only
+          this.output = this.recentOutputs.join('');
           
           resolve(result);
         }
@@ -174,15 +188,35 @@ export abstract class VibeTerminalBase {
               workingDirectory: this.currentWorkingDirectory
             });
             
+            // Store recent output for session reconstruction
+            this.recentOutputs.push(commandOutput);
+            if (this.recentOutputs.length > this.maxRecentOutputs) {
+              this.recentOutputs.shift(); // Remove oldest output
+            }
+            
+            // Rebuild session output from recent commands only
+            this.output = this.recentOutputs.join('');
+            
             resolve(result);
         }
       }, this.promptTimeout);
       
-      // Listen for data - adapter uses onData method
-      this.ptyProcess?.onData(onData);
+      // Parse exit code from output if present
+      const parseExitCode = (output: string) => {
+        const exitCodeMatch = output.match(/VIBE_EXIT_CODE:(\d+)/);
+        if (exitCodeMatch) {
+          detectedExitCode = parseInt(exitCodeMatch[1], 10);
+        }
+      };
       
-      // Write command
-      this.ptyProcess?.write(command + '\r');
+      // Listen for data - adapter uses onData method
+      this.ptyProcess?.onData((data: string) => {
+        parseExitCode(data);
+        onData(data);
+      });
+      
+      // Write wrapped command
+      this.ptyProcess?.write(wrappedCommand + '\r');
     });
     
     // Wait for the command to complete
@@ -210,6 +244,22 @@ export abstract class VibeTerminalBase {
     }
     
     return result;
+  }
+  
+  private wrapCommandWithExitCode(command: string): string {
+    // For now, use a simpler approach - only wrap on Windows where exit codes are more problematic
+    const isWindows = process.platform === 'win32';
+    
+    if (isWindows && this.shellType === 'powershell') {
+      // PowerShell on Windows
+      return `${command}; Write-Host "VIBE_EXIT_CODE:$LASTEXITCODE"`;
+    } else if (isWindows && (this.shellType === 'bash' || this.shellType === 'unknown')) {
+      // CMD on Windows (treated as bash-like)
+      return `${command} & echo VIBE_EXIT_CODE:%ERRORLEVEL%`;
+    } else {
+      // For Unix-like shells, rely on heuristics for now to avoid output corruption
+      return command;
+    }
   }
   
   protected getActualExitCode(output: string, command: string, lastKnownCode: number): number {

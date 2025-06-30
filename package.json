@@ -1,7 +1,7 @@
 {
-  "name": "vibe-dev-mvp",
+  "name": "vibe-dev",
   "version": "0.3.0",
-  "description": "Vibe Dev MVP - Two tools, infinite capability. Clean slate implementation.",
+  "description": "Vibe Dev - A modern MCP server that revolutionizes terminal operations through true session persistence and intelligent analysis.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

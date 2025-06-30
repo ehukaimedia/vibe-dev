@@ -63,7 +63,8 @@ class ChildProcessAdapter implements IPtyAdapter {
     if (isWindows) {
       if (shell.toLowerCase().includes('powershell') || shell.toLowerCase().includes('pwsh')) {
         // PowerShell - use interactive mode for proper session
-        args = ['-NoLogo', '-NoProfile', '-OutputFormat', 'Text'];
+        // Don't use -OutputFormat Text as it can interfere with echo/Write-Output
+        args = ['-NoLogo', '-NoProfile'];
       } else if (shell.toLowerCase().includes('cmd')) {
         // CMD - use /Q for quiet mode, but keep interactive
         args = ['/Q'];

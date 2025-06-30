@@ -320,7 +320,7 @@ Vibe Dev is in active development with Mac at 90% completion and Windows impleme
 Install the production version of vibe-dev globally with one command:
 
 ```bash
-# Mac (90% ready)
+# Mac 
 npm install -g vibe-dev
 
 # Windows (in development - test builds only)

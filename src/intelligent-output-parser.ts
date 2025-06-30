@@ -22,18 +22,26 @@ export class IntelligentOutputParser {
     // Step 1: Clean control characters while preserving structure
     const cleaned = this.cleanControlCharacters(rawOutput);
     
-    // Step 2: Split into lines
-    const lines = cleaned.split(/\r?\n/);
+    // Step 2: Fix common PTY echo artifacts
+    const fixedOutput = this.fixPtyEchoArtifacts(cleaned, command);
     
-    // Step 3: Learn prompt pattern if not known
+    // Step 3: Special handling for Windows echo commands
+    if (this.platform === 'windows' && this.isEchoCommand(command)) {
+      return this.parseWindowsEchoOutput(fixedOutput, command);
+    }
+    
+    // Step 4: Split into lines
+    const lines = fixedOutput.split(/\r?\n/);
+    
+    // Step 5: Learn prompt pattern if not known
     if (!this.promptPattern) {
       this.learnPromptPattern(lines);
     }
     
-    // Step 4: Find command execution point
+    // Step 6: Find command execution point
     const commandIndex = this.findCommandExecution(lines, command);
     
-    // Step 5: Extract output after command
+    // Step 7: Extract output after command
     let outputLines: string[] = [];
     if (commandIndex >= 0) {
       outputLines = lines.slice(commandIndex + 1);
@@ -42,13 +50,13 @@ export class IntelligentOutputParser {
       outputLines = this.removePromptLines(lines);
     }
     
-    // Step 6: Remove trailing prompts
+    // Step 8: Remove trailing prompts
     outputLines = this.removeTrailingPrompts(outputLines);
     
-    // Step 7: Remove any remaining lines that look like prompts
+    // Step 9: Remove any remaining lines that look like prompts
     outputLines = outputLines.filter(line => !this.isPromptLine(line));
     
-    // Step 8: Also remove lines that contain the command with a prompt
+    // Step 10: Also remove lines that contain the command with a prompt
     outputLines = outputLines.filter(line => {
       // If line contains the command and looks like a prompt line, remove it
       if (line.includes(command) && this.looksLikePrompt(line)) {
@@ -57,7 +65,45 @@ export class IntelligentOutputParser {
       return true;
     });
     
-    // Step 9: Remove empty lines at start and end
+    // Step 11: Remove exit code markers and related lines
+    const cleanedLines: string[] = [];
+    let skipNext = false;
+    
+    for (let i = 0; i < outputLines.length; i++) {
+      const line = outputLines[i];
+      
+      // Skip if we're told to skip from previous iteration
+      if (skipNext) {
+        skipNext = false;
+        continue;
+      }
+      
+      // Check if this line or next line contains exit code
+      const hasExitCode = line.includes('VIBE_EXIT_CODE:');
+      const isExitEchoCommand = line.includes('echo') && line.includes('$?');
+      
+      if (hasExitCode || isExitEchoCommand) {
+        // Skip this line
+        continue;
+      }
+      
+      // Check if this is a partial line that will be followed by exit code
+      if (i < outputLines.length - 1) {
+        const nextLine = outputLines[i + 1];
+        if (nextLine.includes('VIBE_EXIT_CODE:')) {
+          // This might be a partial output, check if it's incomplete
+          if (line.length < 10 && !line.trim()) {
+            continue;
+          }
+        }
+      }
+      
+      cleanedLines.push(line);
+    }
+    
+    outputLines = cleanedLines;
+    
+    // Step 12: Remove empty lines at start and end
     outputLines = this.trimEmptyLines(outputLines);
     
     return outputLines.join('\n');
@@ -103,6 +149,136 @@ export class IntelligentOutputParser {
     return cleaned;
   }
   
+  private fixPtyEchoArtifacts(output: string, command: string): string {
+    // Fix doubled first character issue
+    if (command.length > 0) {
+      const firstChar = command[0];
+      const doubledPattern = new RegExp(`${firstChar}${firstChar}${command.substring(1)}`, 'g');
+      output = output.replace(doubledPattern, command);
+    }
+    
+    // Fix broken multi-line commands
+    // When a command is echoed character by character, it can have random line breaks
+    const lines = output.split(/\r?\n/);
+    const fixedLines: string[] = [];
+    let accumulatedLine = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Check if this line is part of a broken command echo
+      if (this.isPartialCommandEcho(line, command)) {
+        accumulatedLine += line;
+        
+        // Check if we've accumulated the full command
+        if (accumulatedLine.includes(command)) {
+          fixedLines.push(accumulatedLine);
+          accumulatedLine = '';
+        }
+      } else {
+        // If we have accumulated content, push it first
+        if (accumulatedLine) {
+          fixedLines.push(accumulatedLine);
+          accumulatedLine = '';
+        }
+        fixedLines.push(line);
+      }
+    }
+    
+    // Don't forget any remaining accumulated content
+    if (accumulatedLine) {
+      fixedLines.push(accumulatedLine);
+    }
+    
+    return fixedLines.join('\n');
+  }
+  
+  private isPartialCommandEcho(line: string, command: string): boolean {
+    // Check if this line contains a partial command that might be broken
+    const trimmed = line.trim();
+    
+    // Empty lines between command parts
+    if (!trimmed && command.includes(' ')) {
+      return true;
+    }
+    
+    // Line contains part of the command
+    for (let i = 1; i <= command.length; i++) {
+      const commandPart = command.substring(0, i);
+      if (trimmed === commandPart || trimmed.endsWith(commandPart)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  private isEchoCommand(command: string): boolean {
+    const trimmed = command.trim().toLowerCase();
+    return trimmed.startsWith('echo ') || 
+           trimmed === 'echo' ||
+           trimmed.startsWith('write-output ') ||
+           trimmed.startsWith('write-host ');
+  }
+  
+  private parseWindowsEchoOutput(rawOutput: string, command: string): string {
+    // For Windows echo commands, we need special handling
+    // PowerShell echo might not produce output in child_process mode
+    const lines = rawOutput.split(/\r?\n/);
+    const outputLines: string[] = [];
+    
+    // Find the command line
+    let foundCommand = false;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      if (!foundCommand && (line.includes(command) || this.containsEchoPattern(line, command))) {
+        foundCommand = true;
+        continue;
+      }
+      
+      if (foundCommand) {
+        // Skip prompt lines
+        if (this.isPromptLine(line)) {
+          continue;
+        }
+        
+        // Skip empty lines at the beginning
+        if (outputLines.length === 0 && !line.trim()) {
+          continue;
+        }
+        
+        outputLines.push(line);
+      }
+    }
+    
+    // If no output was captured, it might be a PowerShell echo issue
+    if (outputLines.length === 0 && command.trim().toLowerCase().startsWith('echo ')) {
+      // Extract the echo content
+      const echoMatch = command.match(/echo\s+["']?(.+?)["']?$/i);
+      if (echoMatch) {
+        return echoMatch[1].replace(/["']/g, '');
+      }
+    }
+    
+    return this.trimEmptyLines(outputLines).join('\n');
+  }
+  
+  private containsEchoPattern(line: string, command: string): boolean {
+    // Check if line contains echo command with potential variations
+    const echoPatterns = ['echo', 'write-output', 'write-host'];
+    const lowerLine = line.toLowerCase();
+    
+    return echoPatterns.some(pattern => {
+      if (lowerLine.includes(pattern)) {
+        // Check if the rest of the command matches
+        const commandContent = command.toLowerCase().replace(/^(echo|write-output|write-host)\s+/i, '');
+        return lowerLine.includes(commandContent);
+      }
+      return false;
+    });
+  }
+  
   private learnPromptPattern(lines: string[]): void {
     // Find lines that look like prompts
     const promptCandidates: string[] = [];
@@ -142,6 +318,16 @@ export class IntelligentOutputParser {
       
       // Direct match - line is just the command
       if (trimmed === cleanCommand) {
+        return i;
+      }
+      
+      // Check if line contains the command (might be wrapped with exit code)
+      if (line.includes(cleanCommand) && !line.includes('VIBE_EXIT_CODE')) {
+        return i;
+      }
+      
+      // Check if this is our wrapped command with exit code
+      if (line.includes(cleanCommand) && line.includes('echo') && line.includes('VIBE_EXIT_CODE')) {
         return i;
       }
       
