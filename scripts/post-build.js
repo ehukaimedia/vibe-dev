@@ -16,6 +16,5 @@ if (existsSync(mainFile)) {
     writeFileSync(mainFile, '#!/usr/bin/env node\n' + content);
     console.log('✓ Added shebang to dist/index.js');
   }
+  // Only log if we did something
 }
-
-console.log('✓ Post-build tasks completed');

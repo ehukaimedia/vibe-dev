@@ -1,31 +1,49 @@
 {
   "compilerOptions": {
+    // Target and Module Resolution
     "target": "ES2024",
     "module": "NodeNext",
-    "lib": ["ES2024", "DOM"],
     "moduleResolution": "NodeNext",
+    "lib": ["ES2024"],
+    
+    // Output Configuration
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "./src",
+    "removeComments": true,
+    
+    // Type Checking
     "strict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    
+    // Module Interop
     "esModuleInterop": true,
-    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    
+    // Project References
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    
+    // Additional Options
+    "skipLibCheck": true,
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true,
-    "isolatedModules": true,
-    "verbatimModuleSyntax": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "allowJs": true,
-    "checkJs": false
+    "allowJs": false,
+    
+    // Performance
+    "incremental": true,
+    "tsBuildInfoFile": "./.tsbuildinfo"
   },
-  "include": ["src/**/*", "test/**/*", "scripts/**/*"],
-  "exclude": ["node_modules", "dist", "coverage"]
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
 }

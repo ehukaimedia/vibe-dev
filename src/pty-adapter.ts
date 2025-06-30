@@ -47,12 +47,29 @@ class ChildProcessAdapter implements IPtyAdapter {
   private stdin: Writable;
   
   constructor(shell: string, args: string[], options: any) {
-    this.process = nodeSpawn(shell, args, {
-      shell: true,
+    const isWindows = process.platform === 'win32';
+    
+    // Windows-specific spawn options
+    const spawnOptions = {
+      shell: false, // Don't use shell wrapper
       windowsHide: true,
       env: options.env,
       cwd: options.cwd,
-    });
+      stdio: ['pipe', 'pipe', 'pipe'] as any
+    };
+    
+    // On Windows, we need special handling for different shells
+    if (isWindows) {
+      if (shell.toLowerCase().includes('powershell') || shell.toLowerCase().includes('pwsh')) {
+        // PowerShell needs specific arguments
+        args = ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', '-'];
+      } else if (shell.toLowerCase().includes('cmd')) {
+        // CMD needs /Q for quiet mode
+        args = ['/Q', '/K'];
+      }
+    }
+    
+    this.process = nodeSpawn(shell, args, spawnOptions);
     
     this.stdout = this.process.stdout!;
     this.stdin = this.process.stdin!;
@@ -81,12 +98,28 @@ class ChildProcessAdapter implements IPtyAdapter {
 }
 
 export function createPtyAdapter(shell: string, args: string[], options: any): IPtyAdapter {
+  const isWindows = process.platform === 'win32';
+  
   try {
     // Try to load node-pty
     require.resolve('node-pty');
+    
+    // On Windows, verify ConPTY support
+    if (isWindows) {
+      const os = require('os');
+      const [major, minor, build] = os.release().split('.').map(Number);
+      
+      // ConPTY requires Windows 10 build 18309 or later
+      if (major < 10 || (major === 10 && build < 18309)) {
+        console.warn('ConPTY not supported on this Windows version, using fallback');
+        return new ChildProcessAdapter(shell, args, options);
+      }
+    }
+    
     return new NodePtyAdapter(shell, args, options);
   } catch (error) {
-    console.warn('node-pty not available, falling back to child_process');
+    console.warn('node-pty not available, using child_process fallback');
+    console.warn('For better terminal emulation, run: npm install node-pty');
     return new ChildProcessAdapter(shell, args, options);
   }
 }

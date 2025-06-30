@@ -1,3 +1,0 @@
-@echo off
-cd /d C:\Users\arsen\Desktop\AI-Applications\Node\vibe-dev
-gemini --model gemini-2.5-pro --prompt "Read and analyze the file at docs\gemini-handoffs\debug-cleanup-request.md and provide a detailed response with: 1) Safe cleanup steps for Windows, 2) Test scripts for debugging, 3) How to use vibe_recap for debugging, 4) Your hypothesis about the timeout issue. Format response as markdown for handoff."

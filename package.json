@@ -8,21 +8,16 @@
     "vibe-dev": "./dist/index.js"
   },
   "scripts": {
-    "prebuild": "npm run clean",
-    "build": "tsc -p tsconfig.build.json",
-    "build:dev": "tsc",
-    "postbuild": "node scripts/post-build.js",
-    "dev": "tsc --watch",
-    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
-    "test:ci": "cross-env CI=true NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --detectOpenHandles",
-    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
-    "clean": "rm -rf dist coverage",
+    "build": "node scripts/build.js --no-verify",
+    "build:clean": "node scripts/build.js --clean",
+    "build:full": "node scripts/build.js --clean",
+    "build:quick": "tsc --incremental",
+    "dev": "tsc --watch --incremental",
+    "clean": "node scripts/clean.js",
     "start": "node dist/index.js",
-    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
-    "test:validate": "node scripts/test/validate-organization.js",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit && node scripts/lint.js",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "verify": "node scripts/verify-build.js"
   },
   "keywords": [
     "vibe-dev",
@@ -56,12 +51,6 @@
     "test": "test"
   },
   "devDependencies": {
-    "@jest/globals": "^30.0.3",
-    "@types/jest": "^30.0.0",
-    "cross-env": "^7.0.3",
-    "jest": "^30.0.3",
-    "jest-mock-extended": "^4.0.0",
-    "ts-jest": "^29.4.0",
     "tsx": "^4.20.3"
   }
 }

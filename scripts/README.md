@@ -1,61 +1,50 @@
-# Scripts Directory Organization
+# Build Scripts
 
-This directory contains **production build and utility scripts** organized by platform.
+Intuitive cross-platform build system for Vibe Dev.
 
-## Directory Structure
+## Core Scripts
 
-```
-scripts/
-├── windows/          # Windows-specific scripts (.bat, .ps1)
-│   ├── build.bat              # Quick build script for Windows
-│   ├── build-verbose.bat      # Verbose build with detailed output
-│   ├── gemini-debug-analysis.ps1  # PowerShell script for Gemini AI analysis
-│   └── run-gemini-analysis.bat    # Batch wrapper for Gemini
-│
-├── mac/              # Mac/Linux-specific scripts (.sh)
-│   ├── setup-utm-windows.sh   # Setup Windows VM in UTM for testing
-│   └── verify-build.sh        # Build verification script
-│
-└── common/           # Cross-platform scripts (.js)
-    └── check-env.js          # Environment checking utility
-```
+### `build.js`
+Main build orchestrator that runs the complete build pipeline:
+1. Clean previous artifacts
+2. Compile TypeScript
+3. Add shebang to entry point
+4. Verify the build
 
-## Usage
-
-### Windows Scripts
-Run from PowerShell or Command Prompt:
-```powershell
-# Build the project
-.\scripts\windows\build.bat
-
-# Build with verbose output
-.\scripts\windows\build-verbose.bat
-
-# Run Gemini analysis
-.\scripts\windows\gemini-debug-analysis.ps1
-```
-
-### Mac/Linux Scripts
-Run from Terminal:
 ```bash
-# Verify build
-./scripts/mac/verify-build.sh
-
-# Setup Windows VM for testing
-./scripts/mac/setup-utm-windows.sh
+npm run build
 ```
 
-### Cross-Platform Scripts
-Run with Node.js on any platform:
+### `clean.js`
+Cross-platform cleaning of build artifacts (dist/, coverage/, etc.)
+
 ```bash
-# Check environment
-node scripts/common/check-env.js
+npm run clean
 ```
 
-## Notes
+### `post-build.js`
+Ensures the main entry point has proper shebang for global installation.
 
-- This directory contains **production scripts only**
-- Windows scripts use `.bat` for cmd.exe or `.ps1` for PowerShell
-- Mac/Linux scripts use `.sh` with bash shebang
-- Cross-platform scripts are written in JavaScript
-- All test and debug utilities are in `test/utilities/`
+### `verify-build.js`
+Comprehensive build verification:
+- TypeScript compilation check
+- Platform file verification
+- Terminal emulation support check
+- Platform detection test
+- MCP server startup test
+
+```bash
+npm run verify
+```
+
+## Platform Support
+
+All scripts automatically detect and adapt to:
+- **macOS** (darwin) - Primary development platform
+- **Windows** (win32) - Full ConPTY support on Windows 10+
+
+The build system is designed to be:
+- **Intuitive**: Single command builds everything
+- **Reliable**: Comprehensive verification steps
+- **Lightweight**: Minimal dependencies
+- **Smart**: Auto-detects platform capabilities
