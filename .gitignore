@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 !dist/.gitkeep
+.tsbuildinfo
 
 # Environment files
 .env
