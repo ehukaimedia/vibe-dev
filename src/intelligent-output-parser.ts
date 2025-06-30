@@ -64,12 +64,24 @@ export class IntelligentOutputParser {
   }
   
   private cleanControlCharacters(text: string): string {
-    // Remove ANSI escape sequences
+    // Remove ANSI escape sequences more comprehensively
     let cleaned = text
-      .replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '') // CSI sequences
-      .replace(/\x1B\].*?(?:\x07|\x1B\\)/g, '') // OSC sequences
+      .replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '') // CSI sequences (colors, cursor movement)
+      .replace(/\x1B\].*?(?:\x07|\x1B\\)/g, '') // OSC sequences (window title, etc.)
       .replace(/\x1B[PX^_].*?\x1B\\/g, '') // Other escape sequences
+      .replace(/\x1B\[.*?[a-zA-Z]/g, '') // More CSI sequences
+      .replace(/\x1B\([AB]/g, '') // Character set selection
+      .replace(/\x1B\]/g, '') // Incomplete OSC sequences
       .replace(/\x1B./g, ''); // Single char sequences
+    
+    // Remove specific problematic sequences common in zsh
+    cleaned = cleaned
+      .replace(/\x1B\[.*?[JKm]/g, '') // Clear screen/line, colors
+      .replace(/\x1B\[\?.*?[hl]/g, '') // Mode setting/resetting
+      .replace(/\x1B\[.*?[ABCD]/g, '') // Cursor movement
+      .replace(/\x1B\[.*?[HfJ]/g, '') // Cursor positioning and clear
+      .replace(/\x1B\[0m/g, '') // Reset formatting
+      .replace(/\x1B\[m/g, ''); // Short reset formatting
     
     // Convert carriage returns to newlines when appropriate
     // Handle \r\n (Windows) and \r alone (Mac classic)
@@ -81,6 +93,12 @@ export class IntelligentOutputParser {
     
     // Remove bracketed paste mode markers
     cleaned = cleaned.replace(/\[?\?2004[hl]/g, '');
+    
+    // Remove any remaining escape sequences that might have been missed
+    cleaned = cleaned.replace(/\x1B/g, '');
+    
+    // Clean up extra whitespace that might be left from removed sequences
+    cleaned = cleaned.replace(/  +/g, ' '); // Multiple spaces to single space
     
     return cleaned;
   }
@@ -116,14 +134,23 @@ export class IntelligentOutputParser {
       const line = lines[i];
       const trimmed = line.trim();
       
+      // Skip empty lines
+      if (!trimmed) continue;
+      
+      // Clean line of control characters for better matching
+      const cleanLine = line.replace(/[^\x20-\x7E\s]/g, '');
+      
       // Direct match - line is just the command
       if (trimmed === cleanCommand) {
         return i;
       }
       
-      // Line ends with the command (common pattern)
+      // Line ends with the command (common pattern: "prompt$ command")
       if (trimmed.endsWith(cleanCommand)) {
-        return i;
+        const beforeCommand = trimmed.substring(0, trimmed.indexOf(cleanCommand));
+        if (this.looksLikePrompt(beforeCommand)) {
+          return i;
+        }
       }
       
       // Line contains command - check if it's a command execution
@@ -136,18 +163,31 @@ export class IntelligentOutputParser {
           return i;
         }
         
-        // Also check if the command appears to be at the end with possible trailing chars
+        // Check if the command appears with minimal trailing content
         const afterCommand = line.substring(line.indexOf(cleanCommand) + cleanCommand.length);
-        if (afterCommand.length <= 2) { // Allow for small trailing chars/spaces
+        if (afterCommand.trim().length <= 2) { // Allow for small trailing chars
           return i;
         }
       }
       
-      // Handle case where there might be control chars affecting the command
-      // Remove non-printable characters and check again
-      const cleanLine = line.replace(/[^\x20-\x7E]/g, '');
-      if (cleanLine.includes(cleanCommand) && this.looksLikePrompt(cleanLine)) {
-        return i;
+      // Check cleaned line too
+      if (cleanLine.includes(cleanCommand)) {
+        const beforeCommand = cleanLine.substring(0, cleanLine.indexOf(cleanCommand));
+        if (this.looksLikePrompt(beforeCommand)) {
+          return i;
+        }
+      }
+      
+      // Special case: handle command that might have been corrupted by terminal
+      // Look for patterns like "eecho" instead of "echo"
+      if (cleanCommand.length > 2) {
+        const duplicateFirstChar = cleanCommand[0] + cleanCommand;
+        if (line.includes(duplicateFirstChar)) {
+          const beforeCommand = line.substring(0, line.indexOf(duplicateFirstChar));
+          if (this.looksLikePrompt(beforeCommand)) {
+            return i;
+          }
+        }
       }
     }
     

@@ -45,6 +45,7 @@ class ChildProcessAdapter implements IPtyAdapter {
   private process: ChildProcess;
   private stdout: Readable;
   private stdin: Writable;
+  private dataListeners: ((data: string) => void)[] = [];
   
   constructor(shell: string, args: string[], options: any) {
     const isWindows = process.platform === 'win32';
@@ -61,11 +62,11 @@ class ChildProcessAdapter implements IPtyAdapter {
     // On Windows, we need special handling for different shells
     if (isWindows) {
       if (shell.toLowerCase().includes('powershell') || shell.toLowerCase().includes('pwsh')) {
-        // PowerShell needs specific arguments
-        args = ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', '-'];
+        // PowerShell - use interactive mode for proper session
+        args = ['-NoLogo', '-NoProfile', '-OutputFormat', 'Text'];
       } else if (shell.toLowerCase().includes('cmd')) {
-        // CMD needs /Q for quiet mode
-        args = ['/Q', '/K'];
+        // CMD - use /Q for quiet mode, but keep interactive
+        args = ['/Q'];
       }
     }
     
@@ -73,11 +74,31 @@ class ChildProcessAdapter implements IPtyAdapter {
     
     this.stdout = this.process.stdout!;
     this.stdin = this.process.stdin!;
+    
+    // Set up proper data handling
+    this.setupDataHandling();
+  }
+  
+  private setupDataHandling(): void {
+    // Combine stdout and stderr
+    this.stdout.on('data', (chunk) => {
+      const data = chunk.toString();
+      this.dataListeners.forEach(listener => listener(data));
+    });
+    
+    this.process.stderr?.on('data', (chunk) => {
+      const data = chunk.toString();
+      this.dataListeners.forEach(listener => listener(data));
+    });
+    
+    // Handle process exit
+    this.process.on('exit', (code) => {
+      // For now, we don't propagate exit events as PTY adapter doesn't define this
+    });
   }
   
   onData(callback: (data: string) => void): void {
-    this.stdout.on('data', (chunk) => callback(chunk.toString()));
-    this.process.stderr?.on('data', (chunk) => callback(chunk.toString()));
+    this.dataListeners.push(callback);
   }
   
   write(data: string): void {

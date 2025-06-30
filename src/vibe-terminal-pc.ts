@@ -51,9 +51,9 @@ export class VibeTerminalPC extends VibeTerminalBase {
       return 'sh';
     }
     
-    // CMD and other Windows shells
+    // CMD and other Windows shells - for now, treat as bash-like for compatibility
     if (lowerPath.includes('cmd') || lowerPath.includes('command')) {
-      return 'unknown'; // CMD is not in the type union
+      return 'bash'; // Treat CMD as bash-like for basic compatibility
     }
     
     // WSL
@@ -84,52 +84,83 @@ export class VibeTerminalPC extends VibeTerminalBase {
   }
   
   protected isAtPrompt(output: string): boolean {
-    // Split into lines and check the last non-empty line
-    const lines = output.split(/\r?\n/);
+    // Clean output first to handle control characters
+    const cleaned = output.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+    const lines = cleaned.split(/\r?\n/);
     
-    // Find the last non-empty line
-    let lastLine = '';
-    for (let i = lines.length - 1; i >= 0; i--) {
+    // Check last few lines for prompt patterns
+    for (let i = lines.length - 1; i >= Math.max(0, lines.length - 5); i--) {
       const line = lines[i].trim();
-      if (line) {
-        lastLine = line;
-        break;
+      if (!line) continue;
+      
+      // PowerShell prompts
+      if (/^PS [A-Z]:\\.*>\s*$/.test(line)) {
+        return true;
+      }
+      
+      // Windows path with > (could be PS or CMD)  
+      if (/^[A-Z]:\\[^>]*>\s*$/.test(line)) {
+        return true;
+      }
+      
+      // Simple path prompt like "C:\>"
+      if (/^[A-Z]:\\?\s*>\s*$/.test(line)) {
+        return true;
+      }
+      
+      // Git Bash or WSL prompts
+      if (/[$#]\s*$/.test(line) && line.length < 200) {
+        return true;
+      }
+      
+      // User@host pattern (WSL/Git Bash)
+      if (/.*@.*[$#]\s*$/.test(line)) {
+        return true;
+      }
+      
+      // Cygwin style prompts
+      if (/.*@.*\s.*[$#]\s*$/.test(line)) {
+        return true;
+      }
+      
+      // Sometimes PowerShell shows just ">" on a line
+      if (line === '>' && this.shellType === 'powershell') {
+        return true;
+      }
+      
+      // Check for prompt-like patterns with various shells
+      if (this.looksLikePromptPattern(line)) {
+        return true;
       }
     }
     
-    if (!lastLine) return false;
-    
-    // PowerShell prompt: PS C:\...>
-    if (/^PS [A-Z]:\\.*>\s*$/.test(lastLine)) {
-      return true;
-    }
-    
-    // PowerShell custom prompt (may not have PS prefix)
-    if (/^[A-Z]:\\.*>\s*$/.test(lastLine) && this.shellType === 'powershell') {
-      return true;
-    }
-    
-    // CMD prompt: C:\...>
-    if (/^[A-Z]:\\.*>\s*$/.test(lastLine) && this.shellType !== 'powershell') {
-      return true;
-    }
-    
-    // Git Bash prompt: ends with $ or #
-    if (/[$#]\s*$/.test(lastLine)) {
-      return true;
-    }
-    
-    // WSL prompt patterns
-    if (/.*@.*:.*[$#]\s*$/.test(lastLine)) {
-      return true;
-    }
-    
-    // Cygwin prompt
-    if (/.*@.*\s+.*\s*[$#]\s*$/.test(lastLine)) {
+    // Additional check: if output hasn't changed for a while and ends with path-like content
+    if (this.hasStablePromptEnding(lines)) {
       return true;
     }
     
     return false;
+  }
+  
+  private looksLikePromptPattern(line: string): boolean {
+    // Common Windows prompt indicators
+    const windowsPromptIndicators = [
+      /^[A-Z]:\\/,           // Drive letter start
+      />\s*$/,               // Ends with >
+      /\$\s*$/,              // Ends with $
+      /#\s*$/,               // Ends with #
+      /PS\s/,                // Contains PS (PowerShell)
+    ];
+    
+    return windowsPromptIndicators.some(pattern => pattern.test(line));
+  }
+  
+  private hasStablePromptEnding(lines: string[]): boolean {
+    const lastLine = lines[lines.length - 1]?.trim();
+    if (!lastLine) return false;
+    
+    // If last line looks like a Windows path, might be a prompt
+    return /^[A-Z]:\\/.test(lastLine) && lastLine.length < 100;
   }  
   cleanOutput(rawOutput: string, command: string): string {
     // Use the intelligent output parser

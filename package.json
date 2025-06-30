@@ -17,7 +17,16 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "prepare": "npm run build",
-    "verify": "node scripts/verify-build.js"
+    "verify": "node scripts/verify-build.js",
+    "test": "node test/integration/mac/production.test.mjs",
+    "test:unit": "echo 'Unit tests ready for implementation'",
+    "test:integration": "node test/integration/mac/production.test.mjs",
+    "test:mac": "node test/integration/mac/production.test.mjs",
+    "test:windows": "node test/integration/windows/windows.test.mjs",
+    "test:cross": "node test/integration/cross-platform/gemini-test.mjs",
+    "test:gemini": "node test/integration/cross-platform/gemini-test.mjs",
+    "test:production": "node test/integration/mac/production.test.mjs",
+    "test:build": "npm run build && echo 'Build test passed'"
   },
   "keywords": [
     "vibe-dev",
@@ -39,6 +48,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.13.2",
     "@types/node": "^24.0.4",
+    "ts-jest": "^29.4.0",
     "typescript": "^5.8.3",
     "zod": "^3.25.67",
     "zod-to-json-schema": "^3.24.6"
@@ -47,8 +57,7 @@
     "node-pty": "^1.0.0"
   },
   "directories": {
-    "doc": "docs",
-    "test": "test"
+    "doc": "docs"
   },
   "devDependencies": {
     "tsx": "^4.20.3"

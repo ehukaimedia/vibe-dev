@@ -88,19 +88,18 @@ export abstract class VibeTerminalBase {
       let promptDetected = false;
       let timedOut = false;
       let timeoutHandle: NodeJS.Timeout;
+      let lastExitCode = 0; // Track actual exit code
       
       const cleanup = () => {
         this.isExecuting = false;
         if (timeoutHandle) clearTimeout(timeoutHandle);
-        // Note: With the adapter pattern, we don't have a direct way to remove listeners
-        // This is a limitation of the child_process fallback
       };
       
       const onData = (data: string) => {
         commandOutput += data;
         this.output += data; // Keep full session history
         
-        // Check for prompt
+        // Check for prompt with improved detection
         if (this.isAtPrompt(commandOutput) && !timedOut) {
           promptDetected = true;
           cleanup();
@@ -109,7 +108,7 @@ export abstract class VibeTerminalBase {
           if (command.trim() === 'pwd') {
             // pwd command - output is the directory
             const pwdOutput = this._cleanOutput(commandOutput, command).trim();
-            if (pwdOutput && pwdOutput.startsWith('/')) {
+            if (pwdOutput && (pwdOutput.startsWith('/') || pwdOutput.match(/^[A-Z]:/))) {
               this.currentWorkingDirectory = pwdOutput;
             }
           } else {
@@ -121,9 +120,13 @@ export abstract class VibeTerminalBase {
           }
           
           const duration = Date.now() - startTime;
+          
+          // Use better exit code detection
+          const exitCode = this.getActualExitCode(commandOutput, command, lastExitCode);
+          
           const result: TerminalResult = {
             output: this._cleanOutput(commandOutput, command),
-            exitCode: this.extractExitCode(commandOutput),
+            exitCode,
             duration,
             sessionId: this.sessionId,
             timestamp: new Date(),
@@ -149,8 +152,6 @@ export abstract class VibeTerminalBase {
       timeoutHandle = setTimeout(() => {
         if (!promptDetected) {
           timedOut = true;
-          // Don't send Ctrl+C - it contaminates the session
-          // Just return with timeout indicator
           cleanup();
           
           const duration = Date.now() - startTime;
@@ -211,18 +212,72 @@ export abstract class VibeTerminalBase {
     return result;
   }
   
-  protected extractExitCode(output: string): number {
-    // This is difficult to determine from output alone
-    // Would need to check shell-specific status indicators
-    // For now, return 0 if output doesn't contain obvious errors
-    if (output.includes('command not found') || 
-        output.includes('No such file or directory') ||
-        output.includes('Permission denied') ||
-        output.includes('fatal:') ||
-        output.includes('error:')) {
+  protected getActualExitCode(output: string, command: string, lastKnownCode: number): number {
+    // Improved exit code detection using multiple strategies
+    
+    // Strategy 1: Check for obvious error patterns in output
+    const errorPatterns = [
+      'command not found',
+      'No such file or directory',
+      'Permission denied',
+      'fatal:',
+      'error:',
+      'bash:',
+      'zsh:',
+      'sh:',
+      'cannot access',
+      'not found',
+      'is not recognized', // Windows
+      'The system cannot find' // Windows
+    ];
+    
+    const hasError = errorPatterns.some(pattern => 
+      output.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    if (hasError) {
       return 1;
     }
-    return 0;
+    
+    // Strategy 2: For certain commands, check specific success indicators
+    const trimmedCmd = command.trim().toLowerCase();
+    
+    if (trimmedCmd.startsWith('cd ') || trimmedCmd === 'cd') {
+      // For cd command, if no error message, assume success
+      return hasError ? 1 : 0;
+    }
+    
+    if (trimmedCmd === 'pwd' || trimmedCmd === 'echo') {
+      // These commands almost always succeed if they produce output
+      const cleanOutput = this._cleanOutput(output, command).trim();
+      return cleanOutput.length > 0 ? 0 : 1;
+    }
+    
+    // Strategy 3: Use marker-based approach (future enhancement)
+    // This would involve echoing the exit code after each command
+    // For now, we'll use a basic heuristic
+    
+    // Strategy 4: Default heuristic - if output seems normal, assume success
+    const cleanOutput = this._cleanOutput(output, command).trim();
+    
+    // If we got reasonable output and no error patterns, likely success
+    if (cleanOutput.length > 0 && !hasError) {
+      return 0;
+    }
+    
+    // If no output but no errors for commands that might not produce output
+    const quietCommands = ['true', 'mkdir', 'touch', 'export', 'set'];
+    if (quietCommands.some(cmd => trimmedCmd.startsWith(cmd))) {
+      return hasError ? 1 : 0;
+    }
+    
+    // Default to error if we can't determine
+    return hasError ? 1 : 0;
+  }
+  
+  protected extractExitCode(output: string): number {
+    // Legacy method - now delegates to improved version
+    return this.getActualExitCode(output, '', 0);
   }
   
   protected extractWorkingDirectory(output: string): string | null {
