@@ -1,14 +1,18 @@
 import type { SessionState, TerminalConfig } from './types.js';
 import { VibeTerminalBase } from './vibe-terminal-base.js';
+import { IntelligentOutputParser } from './intelligent-output-parser.js';
 import * as os from 'os';
 import * as fs from 'fs';
 import { execSync } from 'child_process';
 
 export class VibeTerminalPC extends VibeTerminalBase {
   private windowsVersion: string | null = null;
+  private outputParser: IntelligentOutputParser | null = null;
   
   constructor(config: TerminalConfig = {}) {
     super(config);
+    // Initialize output parser after parent constructor sets shellType
+    this.outputParser = new IntelligentOutputParser(this.shellType, 'windows');
   }
   
   getDefaultShell(): string {
@@ -128,56 +132,11 @@ export class VibeTerminalPC extends VibeTerminalBase {
     return false;
   }  
   cleanOutput(rawOutput: string, command: string): string {
-    let output = rawOutput;
-    
-    // Convert Windows line endings to Unix
-    output = output.replace(/\r\n/g, '\n');
-    
-    // Remove ANSI escape sequences
-    output = output.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
-    
-    // Remove PowerShell progress indicators
-    output = output.replace(/^\s*\d+%\s*$/gm, '');
-    
-    // Special handling for 'cd' command with no arguments
-    const trimmedCommand = command.trim();
-    if (trimmedCommand === 'cd' || trimmedCommand === 'pwd') {
-      // For 'cd' alone in PowerShell/CMD, the output IS the current directory
-      const lines = output.split('\n');
-      const result = [];
-      
-      for (const line of lines) {
-        // Skip prompts but keep path output
-        if (!this.isPromptLine(line) && line.trim() !== trimmedCommand) {
-          result.push(line);
-        }
-      }
-      
-      return result.join('\n').trim();
+    // Use the intelligent output parser
+    if (!this.outputParser) {
+      this.outputParser = new IntelligentOutputParser(this.shellType, 'windows');
     }
-    
-    // For other commands, remove command echo if present
-    if (output.includes(command)) {
-      const lines = output.split('\n');
-      const cmdIndex = lines.findIndex(line => line.trim() === command.trim());
-      if (cmdIndex >= 0) {
-        lines.splice(cmdIndex, 1);
-        output = lines.join('\n');
-      }
-    }
-    
-    // Remove all prompt lines
-    const lines = output.split('\n').filter(line => !this.isPromptLine(line));
-    
-    // Remove empty lines from start and end
-    while (lines.length > 0 && lines[0].trim() === '') {
-      lines.shift();
-    }
-    while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
-      lines.pop();
-    }
-    
-    return lines.join('\n');
+    return this.outputParser.parse(rawOutput, command);
   }
   
   private isPromptLine(line: string): boolean {
