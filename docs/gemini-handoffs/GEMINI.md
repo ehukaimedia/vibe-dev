@@ -72,7 +72,7 @@ Gemini CLI should now see major improvements:
 **IMPORTANT**: All test results and analysis must be saved to:
 📁 `/docs/gemini-handoffs/GEMINI_REPORTS.md`
 
-**Replace the old June 29th report** with your current findings using this template:
+**Replace the previous report** with your current findings using this template:
 
 ```markdown
 # Gemini CLI Test Report - [Current Date]
@@ -151,7 +151,7 @@ npm run test:windows
 ## Comparison with Previous Status
 
 ### Improvements Since Last Report
-- [List any improvements over the June 29th report]
+- [List any improvements over the previous report]
 
 ### Remaining Issues
 - [Issues that still need Claude's attention]
@@ -472,7 +472,7 @@ npm test              # Production test
 
 ### Report File Location
 📁 **File to Update**: `/docs/gemini-handoffs/GEMINI_REPORTS.md`
-- Replace the old June 29th content completely
+- Replace previous content completely
 - Use the markdown template provided above
 - Include all console outputs and test results
 - Save the file after completing your analysis
@@ -483,7 +483,7 @@ npm test              # Production test
 - **Performance Data**: Actual vs. target command execution times
 - **Console Outputs**: All "GEMINI REPORT:" messages from tests
 - **Specific Issues**: Detailed descriptions of any problems found
-- **Comparison**: How current results compare to June 29th report findings
+- **Comparison**: How current results compare to previous report findings
 
 ### Report Quality Expectations
 ✅ **Good Report**:
