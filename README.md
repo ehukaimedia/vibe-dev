@@ -4,7 +4,7 @@
 
 ## What Makes Vibe Dev Different?
 
-**Production Status**: ✅ **Stable** - Actively used in production environments
+**Production Status**: 🚧 **In Development** - Mac 90% ready, PC implementation in progress
 
 Vibe Dev isn't just another terminal wrapper - it's a complete reimagining of how AI assistants interact with development environments. By leveraging modern terminal emulation technology, we deliver what others only promise.
 
@@ -28,7 +28,7 @@ Vibe Dev isn't just another terminal wrapper - it's a complete reimagining of ho
 
 ## What is Vibe Dev?
 
-**Production Status**: ✅ **Stable** - Actively used in production environments
+**Production Status**: 🚧 **In Development** - Mac 90% ready, PC implementation in progress
 
 Vibe Dev is a revolutionary terminal interface that uses modern **terminal emulation** to provide what traditional command executors can't: true persistent shell sessions with complete state preservation. 
 
@@ -307,22 +307,28 @@ This is the better app because it respects how developers actually work - in per
 
 ## Installation
 
-Vibe Dev is production-ready and available for immediate use.
+Vibe Dev is in active development with Mac at 90% completion and Windows implementation in progress.
 
 ### Requirements
-- Node.js 20+ (Mac & Windows)
+- Node.js 20+ (Mac primary, Windows in development)
 - Claude Desktop or compatible MCP client
+- macOS: Full PTY support via node-pty
+- Windows: ConPTY support (Windows 10 build 18309+) or fallback to child_process
 
 ### Global Installation (Recommended)
 
 Install the production version of vibe-dev globally with one command:
 
 ```bash
-# Install globally (Mac & Windows)
+# Mac (90% ready)
 npm install -g vibe-dev
 
-# Or use the GitHub repository directly
+# Windows (in development - test builds only)
 npm install -g git+https://github.com/ehukaimedia/vibe-dev.git
+
+# For Windows, ensure you have:
+# - Windows 10 build 18309+ for ConPTY support
+# - Visual Studio Build Tools for node-pty compilation
 ```
 
 After installation, restart Claude Desktop to use the vibe-dev tools.
@@ -368,6 +374,20 @@ For manual/local installation:
 Configuration file locations:
 - **Mac**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+**Production Claude Desktop Config:**
+```json
+{
+  "mcpServers": {
+    "vibe-dev": {
+      "command": "vibe-dev",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}
+```
 
 ## Usage
 
@@ -447,11 +467,31 @@ Contextual analysis based on actual command outcomes.
 
 | Platform | Status | Notes |
 |----------|--------|-------|
-| macOS    | ✅ Primary | Full PTY support, primary dev platform |
-| Windows  | ✅ Supported | Windows ConPTY for native experience |
+| macOS    | ✅ 90% Ready | Full PTY support, primary dev platform |
+| Windows  | 🚧 In Development | ConPTY support + fallback, needs testing |
 | Linux    | ❌ Not Supported | Focus on Mac/Windows |
 
 Modern terminal emulation works consistently across supported platforms.
+
+### Production Deployment (2025 Standards)
+
+**Security Requirements:**
+- Run PTY processes in containers when exposed to the internet
+- Process spawning inherits parent permissions - manage access carefully
+- Avoid multi-threading with node-pty (not thread-safe)
+- Consider anti-virus exclusions for winpty-agent.exe on Windows
+
+**MCP Protocol Compliance:**
+- Uses MCP SDK v1.13.2+ (latest 2025 standard)
+- Supports both stdio and remote transport methods
+- Implements proper error handling and session management
+- Compatible with Claude Desktop and enterprise MCP clients
+
+**Performance & Reliability:**
+- Incremental TypeScript builds for faster development
+- Clean build system with verification steps
+- Graceful fallback from node-pty to child_process when needed
+- Windows ConPTY detection for optimal terminal emulation
 
 ## The Vibe Dev Promise
 

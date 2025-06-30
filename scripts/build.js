@@ -45,7 +45,6 @@ async function build() {
     const { existsSync } = await import('fs');
     const distExists = existsSync(join(projectRoot, 'dist'));
     if (cleanBuild || !distExists) {
-      console.log('📦 Cleaning previous build...');
       await runCommand('node', ['scripts/clean.js']);
     }
     
