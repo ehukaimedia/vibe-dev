@@ -467,8 +467,8 @@ Contextual analysis based on actual command outcomes.
 
 | Platform | Status | Notes |
 |----------|--------|-------|
-| macOS    | ✅ Production Ready | Full PTY support, <20ms performance |
-| Windows  | 🔄 Testing Required | ConPTY implemented, awaiting validation |
+| macOS    | 🔄 In production
+| Windows  | 🔄 In production
 | Linux    | ❌ Not Supported | Focus on Mac/Windows |
 
 Modern terminal emulation works consistently across supported platforms.

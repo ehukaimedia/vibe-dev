@@ -23,7 +23,11 @@ export class IntelligentOutputParser {
     const cleaned = this.cleanControlCharacters(rawOutput);
     
     // Step 2: Fix common PTY echo artifacts
-    const fixedOutput = this.fixPtyEchoArtifacts(cleaned, command);
+    let fixedOutput = this.fixPtyEchoArtifacts(cleaned, command);
+    
+    // Step 2.5: Remove VIBE_EXIT_CODE patterns before line splitting
+    // This handles cases where exit code is on the same line as output
+    fixedOutput = this.removeExitCodePatterns(fixedOutput);
     
     // Step 3: Special handling for Windows echo commands
     if (this.platform === 'windows' && this.isEchoCommand(command)) {
@@ -70,7 +74,7 @@ export class IntelligentOutputParser {
     let skipNext = false;
     
     for (let i = 0; i < outputLines.length; i++) {
-      const line = outputLines[i];
+      let line = outputLines[i];
       
       // Skip if we're told to skip from previous iteration
       if (skipNext) {
@@ -78,12 +82,35 @@ export class IntelligentOutputParser {
         continue;
       }
       
-      // Check if this line or next line contains exit code
-      const hasExitCode = line.includes('VIBE_EXIT_CODE:');
-      const isExitEchoCommand = line.includes('echo') && line.includes('$?');
+      // Check if this line contains VIBE_EXIT_CODE pattern
+      if (line.includes('VIBE_EXIT_CODE:')) {
+        // For Windows, the exit code might be appended to the output
+        // Extract the part before VIBE_EXIT_CODE
+        const exitCodeIndex = line.indexOf('VIBE_EXIT_CODE:');
+        if (exitCodeIndex > 0) {
+          // Keep the part before the exit code marker
+          const beforeMarker = line.substring(0, exitCodeIndex).trimEnd();
+          if (beforeMarker) {
+            cleanedLines.push(beforeMarker);
+          }
+        }
+        // Skip the rest of this line
+        continue;
+      }
       
-      if (hasExitCode || isExitEchoCommand) {
-        // Skip this line
+      // Check if this line is an echo command for exit code
+      const isExitEchoCommand = line.includes('echo') && line.includes('$?');
+      if (isExitEchoCommand) {
+        continue;
+      }
+      
+      // For Windows CMD, check for echo VIBE_EXIT_CODE:%ERRORLEVEL%
+      if (line.includes('echo VIBE_EXIT_CODE:%ERRORLEVEL%')) {
+        continue;
+      }
+      
+      // For PowerShell, check for Write-Host "VIBE_EXIT_CODE:$LASTEXITCODE"
+      if (line.includes('Write-Host') && line.includes('VIBE_EXIT_CODE:$LASTEXITCODE')) {
         continue;
       }
       
@@ -107,6 +134,28 @@ export class IntelligentOutputParser {
     outputLines = this.trimEmptyLines(outputLines);
     
     return outputLines.join('\n');
+  }
+  
+  private removeExitCodePatterns(text: string): string {
+    // Remove VIBE_EXIT_CODE patterns and the wrapping commands
+    
+    // Remove PowerShell Write-Host command for exit code
+    text = text.replace(/; Write-Host "VIBE_EXIT_CODE:\$LASTEXITCODE"/g, '');
+    
+    // Remove CMD echo command for exit code
+    text = text.replace(/ & echo VIBE_EXIT_CODE:%ERRORLEVEL%/g, '');
+    
+    // Remove actual VIBE_EXIT_CODE output patterns
+    // This regex handles cases where exit code is on its own line
+    text = text.replace(/^VIBE_EXIT_CODE:\d+\r?\n/gm, '');
+    
+    // Handle cases where exit code is at the end of a line with output
+    text = text.replace(/VIBE_EXIT_CODE:\d+$/gm, '');
+    
+    // Handle cases where exit code is in the middle of output (shouldn't happen but just in case)
+    text = text.replace(/VIBE_EXIT_CODE:\d+/g, '');
+    
+    return text;
   }
   
   private cleanControlCharacters(text: string): string {
@@ -327,8 +376,15 @@ export class IntelligentOutputParser {
       }
       
       // Check if this is our wrapped command with exit code
-      if (line.includes(cleanCommand) && line.includes('echo') && line.includes('VIBE_EXIT_CODE')) {
-        return i;
+      if (line.includes(cleanCommand)) {
+        // For Windows PowerShell: command; Write-Host "VIBE_EXIT_CODE:$LASTEXITCODE"
+        if (line.includes('Write-Host') && line.includes('VIBE_EXIT_CODE:$LASTEXITCODE')) {
+          return i;
+        }
+        // For Windows CMD: command & echo VIBE_EXIT_CODE:%ERRORLEVEL%
+        if (line.includes('echo VIBE_EXIT_CODE:%ERRORLEVEL%')) {
+          return i;
+        }
       }
       
       // Line ends with the command (common pattern: "prompt$ command")

@@ -133,15 +133,31 @@ export function createPtyAdapter(shell: string, args: string[], options: any): I
       
       // ConPTY requires Windows 10 build 18309 or later
       if (major < 10 || (major === 10 && build < 18309)) {
-        console.warn('ConPTY not supported on this Windows version, using fallback');
-        return new ChildProcessAdapter(shell, args, options);
+        throw new Error(
+          `Vibe Dev requires Windows 10 build 18309 or later for proper terminal emulation.\n` +
+          `Current version: Windows ${major} build ${build}\n` +
+          `Please update Windows or use Windows Terminal for better compatibility.`
+        );
       }
     }
     
     return new NodePtyAdapter(shell, args, options);
-  } catch (error) {
-    console.warn('node-pty not available, using child_process fallback');
-    console.warn('For better terminal emulation, run: npm install node-pty');
-    return new ChildProcessAdapter(shell, args, options);
+  } catch (error: any) {
+    // Check if it's our Windows version error
+    if (error.message?.includes('Windows 10 build')) {
+      throw error;
+    }
+    
+    // node-pty not found
+    throw new Error(
+      `Vibe Dev requires node-pty for proper terminal emulation.\n` +
+      `Please install it by running:\n\n` +
+      `  npm install node-pty\n\n` +
+      `If installation fails on Windows, you may need:\n` +
+      `- Visual Studio Build Tools or Visual Studio 2019+\n` +
+      `- Python 3.x\n` +
+      `- Run npm install with administrator privileges\n\n` +
+      `For detailed instructions, see: https://github.com/microsoft/node-pty#windows`
+    );
   }
 }
