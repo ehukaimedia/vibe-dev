@@ -4,7 +4,7 @@
 
 ## What Makes Vibe Dev Different?
 
-**Production Status**: 🚧 **In Development** - Mac 90% ready, PC implementation in progress
+**Production Status**: ✅ **Mac Production Ready** | 🔄 **Windows Testing Required**
 
 Vibe Dev isn't just another terminal wrapper - it's a complete reimagining of how AI assistants interact with development environments. By leveraging modern terminal emulation technology, we deliver what others only promise.
 
@@ -28,7 +28,7 @@ Vibe Dev isn't just another terminal wrapper - it's a complete reimagining of ho
 
 ## What is Vibe Dev?
 
-**Production Status**: 🚧 **In Development** - Mac 90% ready, PC implementation in progress
+**Production Status**: ✅ **Mac Production Ready** | 🔄 **Windows Testing Required**
 
 Vibe Dev is a revolutionary terminal interface that uses modern **terminal emulation** to provide what traditional command executors can't: true persistent shell sessions with complete state preservation. 
 
@@ -467,8 +467,8 @@ Contextual analysis based on actual command outcomes.
 
 | Platform | Status | Notes |
 |----------|--------|-------|
-| macOS    | ✅ 90% Ready | Full PTY support, primary dev platform |
-| Windows  | 🚧 In Development | ConPTY support + fallback, needs testing |
+| macOS    | ✅ Production Ready | Full PTY support, <20ms performance |
+| Windows  | 🔄 Testing Required | ConPTY implemented, awaiting validation |
 | Linux    | ❌ Not Supported | Focus on Mac/Windows |
 
 Modern terminal emulation works consistently across supported platforms.
@@ -502,6 +502,38 @@ Modern terminal emulation works consistently across supported platforms.
 > We help you progress naturally through intelligent understanding.
 
 Every commit advances our mission: making AI-assisted development feel as natural and reliable as working in your favorite terminal.
+
+## Documentation
+
+### 📁 Documentation Structure
+
+```
+docs/
+├── ARCHITECTURE.md         # System design and architecture
+├── DEVELOPMENT.md          # Development guidelines
+├── WORKFLOW.md            # Development workflow
+├── API.md                 # API reference
+├── CHANGELOG.md           # Version history
+├── STATUS.md              # Current project status
+├── TDD-WORKFLOW.md        # Test-driven development workflow
+├── claude-handoffs/       # Claude AI documentation
+│   ├── CLAUDE.md         # Claude's responsibilities
+│   ├── CLAUDE_STATUS.md  # Detailed production status
+│   ├── CLAUDE_ANALYSIS.md # Technical discoveries
+│   ├── CLAUDE_TODO.md    # Prioritized task list
+│   └── ...               # Session-specific docs
+└── gemini-handoffs/       # Gemini CLI documentation
+    ├── GEMINI.md         # Gemini CLI guidelines
+    ├── GEMINI_REPORTS.md # Test reports (Windows only)
+    └── GEMINI_ANALYSIS.md # Code analysis (both platforms)
+```
+
+### Key Documents
+
+- **For Users**: Start with `README.md` and `docs/API.md`
+- **For Contributors**: See `docs/DEVELOPMENT.md` and `docs/TDD-WORKFLOW.md`
+- **For AI Assistants**: Check respective handoff folders
+- **For Status**: See `docs/STATUS.md` for current state
 
 ## License
 

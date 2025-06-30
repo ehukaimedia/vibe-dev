@@ -69,8 +69,19 @@ Gemini CLI should now see major improvements:
 
 ### Reporting Requirements for Gemini CLI
 
-**IMPORTANT**: All test results and analysis must be saved to:
-📁 `/docs/gemini-handoffs/GEMINI_REPORTS.md`
+**IMPORTANT**: Gemini CLI has two documentation files:
+
+📁 **For Test Results** (Windows only):
+`/docs/gemini-handoffs/GEMINI_REPORTS.md`
+- Update ONLY when testing on Windows PC
+- Contains test execution results and performance metrics
+- Replace previous report with current findings
+
+📁 **For Technical Analysis** (Both Mac and PC):
+`/docs/gemini-handoffs/GEMINI_ANALYSIS.md`
+- Update on EITHER Mac or PC
+- Contains code review and architecture analysis
+- Platform-agnostic observations and recommendations
 
 **Replace the previous report** with your current findings using this template:
 
@@ -502,5 +513,34 @@ npm test              # Production test
 
 ---
 
+## 📁 Documentation Structure for Gemini CLI
+
+### GEMINI_REPORTS.md (Windows Test Results Only)
+- **When**: Update ONLY when testing on Windows PC
+- **What**: Test execution results, performance metrics, bug reports
+- **Format**: Structured test report template
+- **Purpose**: Track Windows-specific issues and improvements
+
+### GEMINI_ANALYSIS.md (Cross-Platform Analysis)
+- **When**: Update on EITHER Mac or PC
+- **What**: Code review, architecture analysis, security observations
+- **Format**: Technical analysis sections
+- **Purpose**: Platform-agnostic technical insights and recommendations
+
+### Usage Examples
+```bash
+# On Windows PC:
+npm run test:gemini
+# → Update GEMINI_REPORTS.md with results
+# → Optionally update GEMINI_ANALYSIS.md with code observations
+
+# On Mac:
+npm run test:gemini
+# → Do NOT update GEMINI_REPORTS.md (verification only)
+# → Can update GEMINI_ANALYSIS.md with technical analysis
+```
+
+---
+
 **🎯 Key Takeaway for Gemini CLI:**
-Your role is to **test, measure, and report**, not to **fix or modify**. Run the Windows tests, measure performance, document findings in GEMINI_REPORTS.md, and provide detailed feedback to Claude. Claude handles all the actual development work to make the fixes.
+Your role is to **test, measure, analyze, and report**, not to **fix or modify**. Run tests, analyze code quality, document findings in the appropriate file, and provide detailed feedback to Claude. Claude handles all the actual development work to make the fixes.
