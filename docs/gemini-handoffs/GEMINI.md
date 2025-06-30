@@ -38,6 +38,9 @@ npm run build
 # Verify build completed successfully (safe)
 npm run test:build
 
+# Run Windows parser test (NEW - tests VIBE_EXIT_CODE fix)
+node test/windows-parser-test.mjs
+
 # Run cross-platform test (works on both Mac and PC)
 node test/integration/cross-platform/gemini-test.mjs
 
@@ -52,20 +55,21 @@ npm run typecheck
 ```
 
 ### Test Files for Gemini CLI
+- `test/windows-parser-test.mjs` - Windows parser test (NEW - tests VIBE_EXIT_CODE removal)
 - `test/integration/cross-platform/gemini-test.mjs` - Cross-platform test (run on both Mac/PC)
 - `test/integration/windows/windows.test.mjs` - Windows-specific functionality test
 - `test/integration/mac/production.test.mjs` - Mac test (for verification only)
 - Build verification through `npm run build` and `npm run test:build`
 
-### Expected Test Results (After Claude's Fixes)
-Gemini CLI should now see major improvements:
-- **Significantly reduced timeout rate** (from previous 100% failure)
-- **Proper exit codes** (0 for success, not -1 timeouts)
-- **Cleaner output** with less PowerShell banner noise
-- **Better command echo handling** 
-- **Improved working directory tracking**
+### Expected Test Results (After Claude's Latest Fixes - June 30 Evening)
+Gemini CLI should now see these specific improvements:
+- **NO MORE VIBE_EXIT_CODE in output** - Parser has been fixed
+- **node-pty is now mandatory** - No more child_process fallback
+- **Clear error messages** if node-pty is missing
+- **Windows parser test** should show 4/5 or 5/5 tests passing
+- **Cleaner output** without exit code artifacts
 
-**Note**: Some issues may remain - report any timeouts, slow performance, or output quality problems
+**Known Remaining Issue**: PATH environment not inherited - git/npm/node commands will fail
 
 ### Reporting Requirements for Gemini CLI
 
@@ -111,6 +115,30 @@ npm run typecheck
 **Output**: [Any type errors]
 
 ## Windows Functionality Testing
+
+### Windows Parser Test (NEW - Test This First!)
+```bash
+node test/windows-parser-test.mjs
+```
+
+**Expected Output:**
+```
+🧪 Testing Windows Output Parser Fix...
+
+✅ PowerShell echo with exit code
+✅ CMD echo with exit code
+✅ Output on same line as exit code
+✅ Error message with EXITCODE substring
+✅ Empty output with exit code only
+
+📊 Results: 5 passed, 0 failed
+```
+
+**What This Tests:**
+- VIBE_EXIT_CODE patterns are properly removed from output
+- Exit codes on same line as output are handled
+- PowerShell and CMD patterns work correctly
+- Error messages containing "EXITCODE" are preserved
 
 ### Test Execution Results
 ```bash
@@ -220,13 +248,16 @@ npm run dev        # Development mode with file watching
 
 ## Current Project Status
 
-### ✅ Completed (By Claude)
+### ✅ Completed (By Claude - Updated June 30 Evening)
 - Mac platform fully functional (no command echo, clean output, fast performance)
 - Comprehensive test suite structure created
 - TDD workflow documented
 - Exit code detection improved
 - Prompt detection enhanced
 - Windows PTY integration fixes implemented
+- **NEW: Fixed VIBE_EXIT_CODE appearing in output**
+- **NEW: Made node-pty mandatory (no fallback)**
+- **NEW: Added Windows parser test suite**
 
 ### 🔄 In Progress
 - Windows testing and validation (Gemini CLI's role)
@@ -471,12 +502,15 @@ npm install
 npm run build
 npm run typecheck
 
-# 2. Test (on both Mac and PC)
+# 2. Test the Parser Fix First (NEW)
+node test/windows-parser-test.mjs  # Should show 4/5 or 5/5 passing
+
+# 3. Test Full Functionality (on both Mac and PC)
 npm run test:gemini    # Cross-platform test - works on both platforms
 npm run test:windows   # Windows-specific test (when on PC)
 npm test              # Production test
 
-# 3. Report (ONLY when testing on PC)
+# 4. Report (ONLY when testing on PC)
 # Edit /docs/gemini-handoffs/GEMINI_REPORTS.md with Windows findings
 # Mac tests are for verification only - don't update reports
 ```
